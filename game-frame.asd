@@ -6,7 +6,9 @@
                :hunchentoot
                :drakma
                :xhtmlgen
-               :queues.simple-cqueue)
+               :queues.simple-cqueue
+               :cl-log
+               :local-time)
   :serial t
   :components ((:file "leds")
                (:file "server")

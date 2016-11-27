@@ -21,6 +21,7 @@
                     stream)))
 
 (defun load-gif (file)
+  (cl-log:log-message :info "Loading GIF file ~A" file)
   (let ((stream (skippy:load-data-stream file)))
     (map 'list
          (lambda (image)
@@ -63,9 +64,10 @@
   (when (and *frame-thrower-thread*
              (bt:thread-alive-p *frame-thrower-thread*))
     (error "frame thrower already running"))
+  (cl-log:log-message :info "Starting frame-thrower thread")
   (setf *frame-thrower-thread*
         (bt:make-thread (lambda ()
                           (handler-case
                               (display-loop command-queue)
                             (error (e)
-                              (format t "frame thrower thread died because of error: ~A~%" e)))))))
+                              (cl-log:log-message :error "frame-thrower thread died with error ~A" e)))))))

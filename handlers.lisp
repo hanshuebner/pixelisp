@@ -5,6 +5,10 @@
 
 (in-package :handlers)
 
+(defvar *gif-folder-dispatcher* (hunchentoot:create-folder-dispatcher-and-handler "/gif/" #P"gifs/"))
+
+(pushnew *gif-folder-dispatcher* hunchentoot:*dispatch-table*)
+
 (defvar *html-output*)
 
 (defmacro with-html5 ((stream) &body body)
