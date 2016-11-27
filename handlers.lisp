@@ -126,8 +126,15 @@
           (id event)
           (retry event)))
 
+(defmethod print-object ((event sse-event) stream)
+  (print-unreadable-object (event stream :type t)
+    (format stream "EVENT: ~A DATA: ~S" (event event) (data event))))
+
 (defclass sse-idle-event ()
   ())
+
+(defmethod print-object ((event sse-idle-event) stream)
+  (print-unreadable-object (event stream :type t)))
 
 (defmethod event-string ((event sse-idle-event))
   (format nil ": idle~%~%"))

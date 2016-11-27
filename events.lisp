@@ -12,6 +12,11 @@
    (data :initarg :data :reader data)
    (id :initarg :id :reader id)))
 
+(defmethod print-object ((event event) stream)
+  (print-unreadable-object (event stream :type t)
+    (format stream "TYPE: ~A DATA: ~S~@[ ID: ~A~]"
+            (type event) (data event) (id event))))
+
 (defvar *subscribers* nil)
 
 (defun subscribe (handler)
