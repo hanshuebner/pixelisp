@@ -2,7 +2,7 @@
 
 (defpackage :leds
   (:use :cl :alexandria)
-  (:export #:make-frame-thrower))
+  (:export #:start-frame-thrower))
 
 (in-package :leds)
 
@@ -59,7 +59,7 @@
 
 (defvar *frame-thrower-thread* nil)
 
-(defun make-frame-thrower (command-queue)
+(defun start-frame-thrower (command-queue)
   (when (and *frame-thrower-thread*
              (bt:thread-alive-p *frame-thrower-thread*))
     (error "frame thrower already running"))

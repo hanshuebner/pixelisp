@@ -1,0 +1,12 @@
+body {
+  padding-top: 50px;
+}
+.game-frame {
+  padding: 40px 15px;
+}
+.image-preview {
+    display: inline-block;
+    width: 64px;
+    height: 64px;
+    overflow: hidden;
+}

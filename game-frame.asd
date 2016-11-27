@@ -8,4 +8,6 @@
                :xhtmlgen
                :queues.simple-cqueue)
   :serial t
-  :components ((:file "leds")))
+  :components ((:file "leds")
+               (:file "server")
+               (:file "handlers")))
