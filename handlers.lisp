@@ -81,14 +81,20 @@
         ((:script :src "js/jquery.min.js"))
         (:script "window.jQuery || document.write('<script src=\"js/jquery.min.js\"></script>')")
         ((:script :src "js/bootstrap.min.js"))
-        ((:script :src "js/ie10-viewport-bug-workaround.js"))))))
+        ((:script :src "js/ie10-viewport-bug-workaround.js"))
+        ((:script :src "js/frontend.js"))))))
 
 (defmacro html (&body body)
   `(xhtml-generator:html
      ,@body))
 
 (define-main-page (home "Home" "/")
-  )
+  (when leds:*current-image*
+    (html
+      ((:img :id "current-image"
+             :src (format nil "/gif/~A.gif" leds:*current-image*)
+             :height 512))
+      ((:div :id "current-image-name") (:princ (pathname-name leds:*current-image*))))))
 
 (define-main-page (gifs "GIFs" "/gifs")
   (dolist (image (sort (directory #"gifs/*.gif")
@@ -102,3 +108,63 @@
 (define-main-page (settings "Settings" "/settings")
   )
 
+(defclass sse-event ()
+  ((event :initform nil :initarg :event :reader event)
+   (data :initform nil :initarg :data :reader data)
+   (id :initform nil :initarg :id :reader id)
+   (retry :initform nil :initarg :retry :reader retry)))
+
+(defmethod event-string ((event sse-event))
+  (format nil
+          "~@[event: ~(~A~)~%~]~
+           ~:[:~;~:*data: ~A~]~%~
+           ~@[id: ~A~%~]~
+           ~@[retry: ~A~%~]~
+           ~%"
+          (event event)
+          (data event)
+          (id event)
+          (retry event)))
+
+(defclass sse-idle-event ()
+  ())
+
+(defmethod event-string ((event sse-idle-event))
+  (format nil ": idle~%~%"))
+
+(defvar *client-id* 0)
+
+(defclass sse-client ()
+  ((stream :initarg :stream :reader stream)
+   (lock :initform (bt:make-lock "event-stream-lock") :accessor lock)
+   (id :initform (ccl::atomic-incf *client-id*) :reader id)))
+
+(defmethod print-object ((client sse-client) stream)
+  (print-unreadable-object (client stream :type t)
+    (format stream "ID: ~A" (id client))))
+
+(defmethod send-event ((client sse-client) event)
+  (cl-log:log-message :info "Sending SSE event ~A to client ~A" event client)
+  (bt:with-lock-held ((lock client))
+    (write-string (event-string event) (stream client))
+    (finish-output (stream client))))
+
+(hunchentoot:define-easy-handler (events :uri "/events") ()
+  (setf (hunchentoot:content-type*) "text/event-stream")
+  (let ((client (make-instance 'sse-client
+                               :stream (flexi-streams:make-flexi-stream (hunchentoot:send-headers)))))
+    (cl-log:log-message :info "Event client ~A connected" client)
+    (events:subscribe (lambda (event)
+                        (cl-log:log-message :info "Forwarding event ~A to client ~A"
+                                            event client)
+                        (send-event client (make-instance 'sse-event
+                                                          :event (events:type event)
+                                                          :data (events:data event)
+                                                          :id (events:id event)))))
+    (handler-case
+        (loop
+          (send-event client (make-instance 'sse-idle-event))
+          (sleep 10))
+      (ccl:socket-error (e)
+        (declare (ignore e))
+        (cl-log:log-message :info "Event client ~A disconnected" client)))))

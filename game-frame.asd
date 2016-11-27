@@ -10,6 +10,7 @@
                :cl-log
                :local-time)
   :serial t
-  :components ((:file "leds")
+  :components ((:file "events")
+               (:file "leds")
                (:file "server")
                (:file "handlers")))

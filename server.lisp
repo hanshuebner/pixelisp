@@ -20,17 +20,19 @@
             (cl-log:message-description self)
             (cl-log:message-arguments self)))
 
+(defvar *led-commands-queue*)
+
 (defun start (&key (port 8428))
   (setf (cl-log:log-manager)
         (make-instance 'cl-log:log-manager :message-class 'formatted-message))
   (cl-log:start-messenger 'cl-log:text-stream-messenger
                           :stream *standard-output*)
-  (let ((led-commands (queues:make-queue :simple-cqueue)))
-    (leds:start-frame-thrower led-commands)
-    (cl-log:log-message :info "Starting hunchentoot on port ~A" port)
-    (hunchentoot:start (make-instance 'hunchentoot:easy-acceptor
-                                      :port port
-                                      :document-root #P "html/"))))
+  (setf *led-commands-queue* (queues:make-queue :simple-cqueue))
+  (leds:start-frame-thrower *led-commands-queue*)
+  (cl-log:log-message :info "Starting hunchentoot on port ~A" port)
+  (hunchentoot:start (make-instance 'hunchentoot:easy-acceptor
+                                    :port port
+                                    :document-root #P "html/")))
 
 (defun main (command-line-arguments)
   (declare (ignore command-line-arguments))

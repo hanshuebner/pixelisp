@@ -2,9 +2,12 @@
 
 (defpackage :leds
   (:use :cl :alexandria)
-  (:export #:start-frame-thrower))
+  (:export #:start-frame-thrower
+           #:*current-image*))
 
 (in-package :leds)
+
+(defvar *current-image* nil)
 
 (defclass led-image (skippy::image)
   ((led-frame :initarg :led-frame :reader led-frame)))
@@ -22,12 +25,16 @@
 
 (defun load-gif (file)
   (cl-log:log-message :info "Loading GIF file ~A" file)
-  (let ((stream (skippy:load-data-stream file)))
-    (map 'list
-         (lambda (image)
-           (change-class image 'led-image
-                         :led-frame (image-to-leds (skippy:color-table stream) image)))
-         (skippy:images stream))))
+  (let* ((stream (skippy:load-data-stream file))
+         (frames (map 'list
+                      (lambda (image)
+                        (change-class image 'led-image
+                                      :led-frame (image-to-leds (skippy:color-table stream) image)))
+                      (skippy:images stream))))
+    (cl-log:log-message :info "Loaded ~D frames" (length frames))
+    (setf *current-image* (pathname-name file))
+    (events:publish :image-loaded (pathname-name file))
+    frames))
 
 (defun display-frame (output image)
   (let ((start-time (get-internal-real-time)))
