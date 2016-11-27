@@ -58,7 +58,7 @@
             ((:span :class "icon-bar"))
             ((:span :class "icon-bar"))
             ((:span :class "icon-bar")))
-           ((:a :class "navbar-brand" :href "/") "GAME FRAME"))
+           ((:a :class "navbar-brand" :href "/") "Game Frame"))
           ((:div :id "navbar" :class "collapse navbar-collapse")
            ((:ul :class "nav navbar-nav")
             (dolist (page *pages*)
