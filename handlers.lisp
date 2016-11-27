@@ -19,17 +19,20 @@
 (defun str (&rest strings)
   (apply 'concatenate 'string strings))
 
-(eval-when (:compile-toplevel :load-toplevel)
-  (defvar *pages* nil))
+(defvar *pages* nil)
 
-(defmacro define-main-page ((function-name name uri) &body body)
+(defun register-page (function-name name uri)
   (let ((entry (list function-name name uri)))
     (if-let (where (member uri *pages* :key #'third :test #'equal))
       (setf (car where) entry)
-      (appendf *pages* (list entry))))
-  `(hunchentoot:define-easy-handler (,function-name :uri ,uri) ()
-     (page (,uri ,name)
-       ,@body)))
+      (appendf *pages* (list entry)))))
+
+(defmacro define-main-page ((function-name name uri) &body body)
+  `(progn
+     (register-page ',function-name ,name ,uri)
+     (hunchentoot:define-easy-handler (,function-name :uri ,uri) ()
+       (page (,uri ,name)
+         ,@body))))
 
 (defmacro page ((uri name) &body body)
   `(with-output-to-string (*html-output*)
