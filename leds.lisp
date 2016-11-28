@@ -37,28 +37,39 @@
 (defclass led-image (skippy::image)
   ((led-frame :initarg :led-frame :reader led-frame)))
 
-(defun get-rgb (color-table image x y)
-  (multiple-value-list (skippy:color-rgb (skippy:color-table-entry color-table
-                                                                   (skippy:pixel-ref image x y)))))
+(defun image-to-leds (color-table frame-buffer image x-scale y-scale)
+  (loop for image-x from 0 below (skippy:width image) by x-scale
+        do (loop for image-y from 0 below (skippy:height image) by y-scale
+                 for fb-x* = (floor (+ (skippy:left-position image) image-x) x-scale)
+                 for fb-y = (floor (+ (skippy:top-position image) image-y) y-scale)
+                 for fb-x = (if (oddp fb-y) (- 15 fb-x*) fb-x*)
+                 for fb-offset = (* (+ (* fb-y 16) fb-x 1) 4)
+                 for color-index = (skippy:pixel-ref image image-x image-y)
+                 when (/= (skippy:transparency-index image) color-index)
+                 do (setf (aref frame-buffer fb-offset) #x87)
+                    (multiple-value-bind (r g b) (skippy:color-rgb (skippy:color-table-entry color-table color-index))
+                      (setf (aref frame-buffer (+ fb-offset 1)) b
+                            (aref frame-buffer (+ fb-offset 2)) g
+                            (aref frame-buffer (+ fb-offset 3)) r))))
+  frame-buffer)
 
-(defun image-to-leds (color-table image)
-  (flexi-streams:with-output-to-sequence (stream)
-    (write-sequence #(0 0 0 0) stream)
-    (dotimes (x 16)
-      (dotimes (y 16)
-        (write-sequence #(#x87) stream)
-        (write-sequence (get-rgb color-table image x y) stream)))
-    (write-sequence (make-array (/ 256 2 8) :element-type '(unsigned-byte 8) :initial-element 0)
-                    stream)))
+(defun make-led-images (stream)
+  (loop with frame-buffer = (make-array (+ 4 (* 256 4) (/ 256 2 8)) :element-type '(unsigned-byte 8) :initial-element 0)
+        with original-images = (skippy:images stream)
+        with images = (make-array (length original-images))
+        with x-scale = (/ (skippy:width stream) 16)
+        with y-scale = (/ (skippy:height stream) 16)
+        with color-table = (skippy:color-table stream)
+        for i from 0 below (length original-images)
+        for image = (aref original-images i)
+        do (setf frame-buffer (image-to-leds color-table frame-buffer (aref original-images i) x-scale y-scale)
+                 (aref images i) (change-class image 'led-image
+                                               :led-frame (copy-sequence 'vector frame-buffer)))
+        finally (return images)))
 
 (defun load-gif (file)
   (cl-log:log-message :info "Loading GIF file ~A" file)
-  (let* ((stream (skippy:load-data-stream file))
-         (images (map 'vector
-                      (lambda (image)
-                        (change-class image 'led-image
-                                      :led-frame (image-to-leds (skippy:color-table stream) image)))
-                      (skippy:images stream))))
+  (let* ((images (make-led-images (skippy:load-data-stream file))))
     (cl-log:log-message :info "Loaded ~D frames" (length images))
     (make-instance 'animation
                    :name (pathname-name file)
@@ -69,7 +80,8 @@
     (write-sequence (led-frame image) output)
     (let* ((write-duration (/ (- (get-internal-real-time) start-time) internal-time-units-per-second))
            (delay (- (/ (skippy:delay-time image) 100) write-duration)))
-      (sleep delay))))
+      (when (plusp delay)
+        (sleep delay)))))
 
 (defun set-current-animation (animation)
   (setf (next-image-index animation) 0
