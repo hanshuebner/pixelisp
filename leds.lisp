@@ -37,14 +37,17 @@
 (defclass led-image (skippy::image)
   ((led-frame :initarg :led-frame :reader led-frame)))
 
+(defun get-rgb (color-table image x y)
+  (multiple-value-list (skippy:color-rgb (skippy:color-table-entry color-table
+                                                                   (skippy:pixel-ref image x y)))))
+
 (defun image-to-leds (color-table image)
   (flexi-streams:with-output-to-sequence (stream)
     (write-sequence #(0 0 0 0) stream)
     (dotimes (x 16)
       (dotimes (y 16)
-        (write-sequence (multiple-value-list (skippy:color-rgb (skippy:color-table-entry color-table
-                                                                                         (skippy:pixel-ref image x y))))
-                        stream)))
+        (write-sequence #(#x87) stream)
+        (write-sequence (get-rgb color-table image x y) stream)))
     (write-sequence (make-array (/ 256 2 8) :element-type '(unsigned-byte 8) :initial-element 0)
                     stream)))
 
@@ -73,7 +76,7 @@
         *current-animation* animation)
   (events:publish :animation-loaded (name animation)))
 
-(defparameter *leds-device* "/dev/null")
+(defparameter *leds-device* "/dev/spidev0.0")
 
 (defun display-loop (command-queue)
   (let ((output (open *leds-device* :direction :output
