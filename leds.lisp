@@ -3,11 +3,36 @@
 (defpackage :leds
   (:use :cl :alexandria)
   (:export #:start-frame-thrower
-           #:*current-image*))
+           #:current-animation
+           #:load-gif
+           #:name #:images))
 
 (in-package :leds)
 
-(defvar *current-image* nil)
+(defvar *current-animation* nil)
+
+(defun current-animation ()
+  *current-animation*)
+
+(defclass animation ()
+  ((images :initarg :images :reader images)
+   (name :initarg :name :reader name)
+   (next-image-index :initform 0 :accessor next-image-index)))
+
+(defmethod print-object ((animation animation) stream)
+  (print-unreadable-object (animation stream :type t)
+    (format stream "NAME: ~A (~:D frames, at ~D)"
+            (name animation)
+            (length (images animation))
+            (next-image-index animation))))
+
+(defmethod next-image ((animation animation))
+  (with-slots (images next-image-index) animation
+    (prog1
+        (aref images next-image-index)
+      (incf next-image-index)
+      (when (= next-image-index (length images))
+        (setf next-image-index 0)))))
 
 (defclass led-image (skippy::image)
   ((led-frame :initarg :led-frame :reader led-frame)))
@@ -26,15 +51,15 @@
 (defun load-gif (file)
   (cl-log:log-message :info "Loading GIF file ~A" file)
   (let* ((stream (skippy:load-data-stream file))
-         (frames (map 'list
+         (images (map 'vector
                       (lambda (image)
                         (change-class image 'led-image
                                       :led-frame (image-to-leds (skippy:color-table stream) image)))
                       (skippy:images stream))))
-    (cl-log:log-message :info "Loaded ~D frames" (length frames))
-    (setf *current-image* (pathname-name file))
-    (events:publish :image-loaded (pathname-name file))
-    frames))
+    (cl-log:log-message :info "Loaded ~D frames" (length images))
+    (make-instance 'animation
+                   :name (pathname-name file)
+                   :images images)))
 
 (defun display-frame (output image)
   (let ((start-time (get-internal-real-time)))
@@ -43,11 +68,15 @@
            (delay (- (/ (skippy:delay-time image) 100) write-duration)))
       (sleep delay))))
 
+(defun set-current-animation (animation)
+  (setf (next-image-index animation) 0
+        *current-animation* animation)
+  (events:publish :animation-loaded (name animation)))
+
 (defparameter *leds-device* "/dev/null")
 
 (defun display-loop (command-queue)
-  (let (images
-        (output (open *leds-device* :direction :output
+  (let ((output (open *leds-device* :direction :output
                                     :if-exists :append
                                     :element-type '(unsigned-byte 8))))
     (loop
@@ -55,13 +84,11 @@
         (ecase (first command)
           (:quit
            (return))
-          (:load-gif
-           (setf images (load-gif (second command))))))
+          (:set-animation
+           (set-current-animation (second command)))))
       (cond
-        (images
-         (display-frame output (first images))
-         (setf images (append (rest images)
-                              (list (first images)))))
+        (*current-animation*
+         (display-frame output (next-image *current-animation*)))
         (t
          (sleep .01))))))
 

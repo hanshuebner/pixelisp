@@ -1,5 +1,5 @@
 var evtSource = new EventSource('/events');
-evtSource.addEventListener('image-loaded',
+evtSource.addEventListener('animation-loaded',
                            function (e) {
                                console.log('image loaded', e.data);
                                $('#current-image').attr('src', '/gif/' + e.data + '.gif');

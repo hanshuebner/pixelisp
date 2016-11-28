@@ -89,12 +89,12 @@
      ,@body))
 
 (define-main-page (home "Home" "/")
-  (when leds:*current-image*
+  (when-let (current-animation (leds:current-animation))
     (html
       ((:img :id "current-image"
-             :src (format nil "/gif/~A.gif" leds:*current-image*)
+             :src (format nil "/gif/~A.gif" (leds:name current-animation))
              :height 512))
-      ((:div :id "current-image-name") (:princ (pathname-name leds:*current-image*))))))
+      ((:div :id "current-image-name") (:princ (leds:name current-animation))))))
 
 (define-main-page (gifs "GIFs" "/gifs")
   (dolist (image (sort (directory #"gifs/*.gif")
