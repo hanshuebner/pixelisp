@@ -114,6 +114,10 @@
    (id :initform nil :initarg :id :reader id)
    (retry :initform nil :initarg :retry :reader retry)))
 
+(defmethod print-object ((event sse-event) stream)
+  (print-unreadable-object (event stream :type t)
+    (format stream "EVENT: ~A DATA: ~S" (event event) (data event))))
+
 (defmethod event-string ((event sse-event))
   (format nil
           "~@[event: ~(~A~)~%~]~
@@ -125,10 +129,6 @@
           (data event)
           (id event)
           (retry event)))
-
-(defmethod print-object ((event sse-event) stream)
-  (print-unreadable-object (event stream :type t)
-    (format stream "EVENT: ~A DATA: ~S" (event event) (data event))))
 
 (defclass sse-idle-event ()
   ())
