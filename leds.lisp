@@ -10,6 +10,7 @@
 (in-package :leds)
 
 (defvar *current-animation* nil)
+(defvar *brightness* 7)
 
 (defun current-animation ()
   *current-animation*)
@@ -37,6 +38,14 @@
 (defclass led-image (skippy::image)
   ((led-frame :initarg :led-frame :reader led-frame)))
 
+(defun make-frame-buffer (&key (brightness *brightness*))
+  (check-type brightness (integer 0 7) "in the expected range for brightness")
+  (let ((buffer (make-array (+ 4 (* 256 4) 256) :element-type '(unsigned-byte 8) :initial-element 0)))
+    (dotimes (x 16)
+      (dotimes (y 16)
+        (setf (aref buffer (* (+ (* y 16) x 1) 4)) (+ #x80 brightness))))
+    buffer))
+
 (defun image-to-leds (color-table frame-buffer image x-scale y-scale)
   (loop for image-x from 0 below (skippy:width image) by x-scale
         do (loop for image-y from 0 below (skippy:height image) by y-scale
@@ -46,15 +55,14 @@
                  for fb-offset = (* (+ (* fb-y 16) fb-x 1) 4)
                  for color-index = (skippy:pixel-ref image image-x image-y)
                  when (/= (skippy:transparency-index image) color-index)
-                 do (setf (aref frame-buffer fb-offset) #x87)
-                    (multiple-value-bind (r g b) (skippy:color-rgb (skippy:color-table-entry color-table color-index))
+                 do (multiple-value-bind (r g b) (skippy:color-rgb (skippy:color-table-entry color-table color-index))
                       (setf (aref frame-buffer (+ fb-offset 1)) b
                             (aref frame-buffer (+ fb-offset 2)) g
                             (aref frame-buffer (+ fb-offset 3)) r))))
   frame-buffer)
 
 (defun make-led-images (stream)
-  (loop with frame-buffer = (make-array (+ 4 (* 256 4) (/ 256 2 8)) :element-type '(unsigned-byte 8) :initial-element 0)
+  (loop with frame-buffer = (make-frame-buffer :brightness *brightness*)
         with original-images = (skippy:images stream)
         with images = (make-array (length original-images))
         with x-scale = (/ (skippy:width stream) 16)
@@ -88,6 +96,10 @@
         *current-animation* animation)
   (events:publish :animation-loaded (name animation)))
 
+(defun stop (output)
+  (setf *current-animation* nil)
+  (write-sequence (make-frame-buffer :brightness 0) output))
+
 (defparameter *leds-device* "/dev/spidev0.0")
 
 (defun display-loop (command-queue)
@@ -100,7 +112,9 @@
           (:quit
            (return))
           (:set-animation
-           (set-current-animation (second command)))))
+           (set-current-animation (second command)))
+          (:stop
+           (stop output))))
       (cond
         (*current-animation*
          (display-frame output (next-image *current-animation*)))
