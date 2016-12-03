@@ -12,6 +12,7 @@
 
 (defvar *current-animation* nil)
 (defvar *brightness* 5)
+(defvar *chill-factor* 2)
 
 (defun current-animation ()
   *current-animation*)
@@ -87,10 +88,11 @@
   (let ((start-time (get-internal-real-time)))
     (write-sequence (led-frame image) output)
     (let* ((write-duration (/ (- (get-internal-real-time) start-time) internal-time-units-per-second))
-           (delay (- (/ (if (zerop (skippy:delay-time image))
-                            10
-                            (skippy:delay-time image))
-                        100)
+           (delay (- (* (/ (if (zerop (skippy:delay-time image))
+                               10
+                               (skippy:delay-time image))
+                           100)
+                        *chill-factor*)
                      write-duration)))
       (when (plusp delay)
         (sleep delay)))))
