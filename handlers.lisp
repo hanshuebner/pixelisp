@@ -104,17 +104,35 @@
                   :height 64))))))
 
 (define-main-page (settings "Settings" "/settings")
-  (:label "Amphetamin ")
-  (:princ "&nbsp;&nbsp;&nbsp;")
-  ((:input :id "chill-factor"
-           :data-slider-id "chill-factor"
-           :type "text"
-           :data-slider-min "0"
-           :data-slider-max "5"
-           :data-slider-step "0.1"
-           :data-slider-value (format nil "~G" (leds:chill-factor))))
-  (:princ "&nbsp;&nbsp;&nbsp;")
-  (:label "Rohypnol"))
+  (:form
+   (:fieldset
+    (:legend "Brightness")
+    ((:div :class "form-group")
+     ((:label :class "left-slider-label") "Dark")
+     (:princ "&nbsp;&nbsp;&nbsp;")
+     ((:input :id "brightness"
+              :data-slider-id "brightness"
+              :type "text"
+              :data-slider-min "1"
+              :data-slider-max "7"
+              :data-slider-step "1"
+              :data-slider-value (format nil "~A" (leds:brightness))))
+     (:princ "&nbsp;&nbsp;&nbsp;")
+     (:label "Bright")))
+   (:fieldset
+    (:legend "Animation Speed")
+    ((:div :class "form-group")
+     ((:label :class "left-slider-label") "Amphetamin")
+     (:princ "&nbsp;&nbsp;&nbsp;")
+     ((:input :id "chill-factor"
+              :data-slider-id "chill-factor"
+              :type "text"
+              :data-slider-min "0"
+              :data-slider-max "5"
+              :data-slider-step "0.1"
+              :data-slider-value (format nil "~G" (leds:chill-factor))))
+     (:princ "&nbsp;&nbsp;&nbsp;")
+     (:label "Rohypnol")))))
 
 (defclass sse-event ()
   ((event :initform nil :initarg :event :reader event)
@@ -192,6 +210,10 @@
 (hunchentoot:define-easy-handler (chill :uri "/chill") ((factor :parameter-type 'parse-number:parse-positive-real-number))
   (setf (leds:chill-factor) factor)
   (format nil "chill factor ~A" factor))
+
+(hunchentoot:define-easy-handler (brightness :uri "/brightness") ((level :parameter-type 'integer))
+  (setf (leds:brightness) level)
+  (format nil "brightness level ~A" level))
 
 (defun run-program (program &rest args)
   (with-output-to-string (output)

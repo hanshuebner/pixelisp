@@ -11,3 +11,9 @@ body {
     overflow: hidden;
     padding: 5px;
 }
+
+.left-slider-label {
+    display: inline-block;
+    width: 10em;
+    text-align: right
+}

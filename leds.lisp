@@ -7,12 +7,20 @@
            #:load-gif
            #:name #:images
            #:send-command
-           #:chill-factor))
+           #:chill-factor
+           #:brightness))
 
 (in-package :leds)
 
 (defvar *current-animation* nil)
 (defvar *brightness* 5)
+
+(defun (setf brightness) (brightness)
+  (send-command :set-brightness brightness))
+
+(defun brightness ()
+  *brightness*)
+
 (defvar *chill-factor* 2)
 
 (defun (setf chill-factor) (chill-factor)
@@ -47,12 +55,16 @@
 (defclass led-image (skippy::image)
   ((led-frame :initarg :led-frame :reader led-frame)))
 
+(defun (setf buffer-brightness) (brightness buffer)
+  (check-type brightness (integer 0 7) "in the expected range for brightness")
+  (dotimes (x 16)
+    (dotimes (y 16)
+      (setf (aref buffer (* (+ (* y 16) x 1) 4)) (+ #x80 brightness)))))
+
 (defun make-frame-buffer (&key (brightness *brightness*))
   (check-type brightness (integer 0 7) "in the expected range for brightness")
   (let ((buffer (make-array (+ 4 (* 256 4) 256) :element-type '(unsigned-byte 8) :initial-element 0)))
-    (dotimes (x 16)
-      (dotimes (y 16)
-        (setf (aref buffer (* (+ (* y 16) x 1) 4)) (+ #x80 brightness))))
+    (setf (buffer-brightness buffer) brightness)
     buffer))
 
 (defun image-to-leds (color-table frame-buffer image)
@@ -109,6 +121,12 @@
         *current-animation* animation)
   (events:publish :animation-loaded (name animation)))
 
+(defun set-brightness (brightness)
+  (setf *brightness* brightness)
+  (when *current-animation*
+    (dolist (image (images *current-animation*))
+      (setf (buffer-brightness (led-frame image)) brightness))))
+
 (defun blank (output)
   (setf *current-animation* nil)
   (write-sequence (make-frame-buffer :brightness 0) output))
@@ -126,6 +144,8 @@
            (return))
           (:set-animation
            (set-current-animation (second command)))
+          (:set-brightness
+           (set-brightness (second command)))
           (:blank
            (blank output))))
       (cond
