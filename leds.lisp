@@ -47,11 +47,11 @@
         (setf (aref buffer (* (+ (* y 16) x 1) 4)) (+ #x80 brightness))))
     buffer))
 
-(defun image-to-leds (color-table frame-buffer image x-scale y-scale)
-  (loop for image-x from 0 below (skippy:width image) by x-scale
-        do (loop for image-y from 0 below (skippy:height image) by y-scale
-                 for fb-x* = (floor (+ (skippy:left-position image) image-x) x-scale)
-                 for fb-y = (floor (+ (skippy:top-position image) image-y) y-scale)
+(defun image-to-leds (color-table frame-buffer image)
+  (loop for image-x from 0 below (min (skippy:width image) 16)
+        do (loop for image-y from 0 below (min (skippy:height image) 16)
+                 for fb-x* = (+ (skippy:left-position image) image-x)
+                 for fb-y = (+ (skippy:top-position image) image-y)
                  for fb-x = (if (oddp fb-y) (- 15 fb-x*) fb-x*)
                  for fb-offset = (* (+ (* fb-y 16) fb-x 1) 4)
                  for color-index = (skippy:pixel-ref image image-x image-y)
@@ -63,23 +63,21 @@
                             (aref frame-buffer (+ fb-offset 3)) r))))
   frame-buffer)
 
-(defun make-led-images (stream)
-  (loop with frame-buffer = (make-frame-buffer :brightness *brightness*)
-        with original-images = (skippy:images stream)
-        with images = (make-array (length original-images))
-        with x-scale = (/ (skippy:width stream) 16)
-        with y-scale = (/ (skippy:height stream) 16)
+(defun make-led-images (file)
+  (loop with stream = (skippy:load-data-stream file)
+        with frame-buffer = (make-frame-buffer :brightness *brightness*)
+        with images = (skippy:images stream)
         with color-table = (skippy:color-table stream)
-        for i from 0 below (length original-images)
-        for image = (aref original-images i)
-        do (setf frame-buffer (image-to-leds color-table frame-buffer (aref original-images i) x-scale y-scale)
+        for i from 0 below (length images)
+        for image = (aref images i)
+        do (setf frame-buffer (image-to-leds color-table frame-buffer image)
                  (aref images i) (change-class image 'led-image
                                                :led-frame (copy-sequence 'vector frame-buffer)))
         finally (return images)))
 
 (defun load-gif (file)
   (cl-log:log-message :info "Loading GIF file ~A" file)
-  (let* ((images (make-led-images (skippy:load-data-stream file))))
+  (let* ((images (make-led-images file)))
     (cl-log:log-message :info "Loaded ~D frames" (length images))
     (make-instance 'animation
                    :name (pathname-name file)
