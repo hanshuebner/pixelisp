@@ -33,13 +33,20 @@
 
 (defun play-all ()
   (loop
-    (dolist (gif (directory #P"gifs/*.gif"))
-      (handler-case
-          (leds:send-command :set-animation (leds:load-gif gif))
-        (error (e)
-          (format t "error loading gif ~A~%~A~%" gif e)
-          (sleep .5)))
-      (sleep 10))))
+    (cl-log:log-message :info "Scanning GIF directory")
+    (let ((gifs (directory #P"gifs/*.gif"))
+          (last-update (file-write-date #P"gifs/")))
+      (loop
+        (let ((gif (alexandria:random-elt gifs)))
+          (cl-log:log-message :info "Loading ~A" gif)
+          (handler-case
+              (leds:send-command :set-animation (leds:load-gif gif))
+            (error (e)
+              (cl-log:log-message :error "Error loading gif ~A~%~A~%" gif e)
+              (sleep .5))))
+        (sleep 30)
+        (when (/= last-update (file-write-date #P"gifs/"))
+          (return))))))
 
 (defun main (command-line-arguments)
   (declare (ignore command-line-arguments))
