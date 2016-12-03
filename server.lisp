@@ -20,7 +20,7 @@
             (cl-log:message-description self)
             (cl-log:message-arguments self)))
 
-(defun start (&key (port 8428))
+(defun start (&key (port 80))
   (setf (cl-log:log-manager)
         (make-instance 'cl-log:log-manager :message-class 'formatted-message))
   (cl-log:start-messenger 'cl-log:text-stream-messenger

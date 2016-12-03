@@ -13,9 +13,9 @@ $('.image-preview').on('click',
                            $.get('/load-gif?name=' + $(this).attr('data-image-name'));
                        });
 
-$('#chill-factor').slider({
-    formatter: function (value) {
-        if (value > 0) {
-            $.get('/chill?factor=' + value);
-        }
-    }});
+$('#chill-factor')
+    .slider();
+$('#chill-factor')
+    .on('slide', function (event) {
+        $.post('/chill?factor=' + event.value);
+    });

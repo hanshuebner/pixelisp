@@ -7,7 +7,7 @@
            #:load-gif
            #:name #:images
            #:send-command
-           #:set-chill-factor))
+           #:chill-factor))
 
 (in-package :leds)
 
@@ -15,8 +15,11 @@
 (defvar *brightness* 5)
 (defvar *chill-factor* 2)
 
-(defun set-chill-factor (chill-factor)
+(defun (setf chill-factor) (chill-factor)
   (setf *chill-factor* chill-factor))
+
+(defun chill-factor ()
+  *chill-factor*)
 
 (defun current-animation ()
   *current-animation*)

@@ -104,15 +104,17 @@
                   :height 64))))))
 
 (define-main-page (settings "Settings" "/settings")
-  "Amphetamin "
+  (:label "Amphetamin ")
+  (:princ "&nbsp;&nbsp;&nbsp;")
   ((:input :id "chill-factor"
            :data-slider-id "chill-factor"
            :type "text"
            :data-slider-min "0"
            :data-slider-max "5"
            :data-slider-step "0.1"
-           :data-slider-value "2"))
-  "Rohypnol")
+           :data-slider-value (format nil "~G" (leds:chill-factor))))
+  (:princ "&nbsp;&nbsp;&nbsp;")
+  (:label "Rohypnol"))
 
 (defclass sse-event ()
   ((event :initform nil :initarg :event :reader event)
@@ -188,7 +190,7 @@
   "loaded")
 
 (hunchentoot:define-easy-handler (chill :uri "/chill") ((factor :parameter-type 'parse-number:parse-positive-real-number))
-  (leds:set-chill-factor factor)
+  (setf (leds:chill-factor) factor)
   (format nil "chill factor ~A" factor))
 
 (defun run-program (program &rest args)
