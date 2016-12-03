@@ -34,6 +34,16 @@
                                     :port port
                                     :document-root #P "html/")))
 
+(defun play-all ()
+  (loop
+    (dolist (gif (directory #P"gifs/*.gif"))
+      (handler-case
+          (queues:qpush *led-commands-queue* `(:set-animation ,(leds:load-gif gif)))
+        (error (e)
+          (format t "error loading gif ~A~%~A~%" gif e)
+          (sleep .5)))
+      (sleep 10))))
+
 (defun main (command-line-arguments)
   (declare (ignore command-line-arguments))
   (setf ccl:*break-hook* (lambda (cond hook)
@@ -41,4 +51,5 @@
                            (format t "Exiting...~%")
                            (ccl:quit)))
   (start)
+  (play-all)
   (bt:join-thread (bt:current-thread)))

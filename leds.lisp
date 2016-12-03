@@ -10,7 +10,7 @@
 (in-package :leds)
 
 (defvar *current-animation* nil)
-(defvar *brightness* 7)
+(defvar *brightness* 5)
 
 (defun current-animation ()
   *current-animation*)
