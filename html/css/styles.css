@@ -9,4 +9,5 @@ body {
     width: 64px;
     height: 64px;
     overflow: hidden;
+    padding: 5px;
 }

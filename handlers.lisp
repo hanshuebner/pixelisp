@@ -100,10 +100,9 @@
   (dolist (image (sort (directory #"gifs/*.gif")
                        'string-lessp
                        :key #'pathname-name))
-    (html (:p ((:div :class "image-preview")
-               ((:img :src (format nil "/gif/~A" (file-namestring image))
-                      :height 64)))
-              (:princ (pathname-name image))))))
+    (html ((:div :class "image-preview" :data-image-name (pathname-name image))
+           ((:img :src (format nil "/gif/~A" (file-namestring image))
+                  :height 64))))))
 
 (define-main-page (settings "Settings" "/settings")
   )
@@ -175,3 +174,8 @@
       (ccl:socket-error (e)
         (declare (ignore e))
         (cl-log:log-message :info "Event client ~A disconnected" client)))))
+
+(hunchentoot:define-easy-handler (load-gif :uri "/load-gif") (name)
+  (leds:send-command :set-animation (leds:load-gif (make-pathname :name name
+                                                                  :defaults #"gifs/.gif")))
+  "loaded")

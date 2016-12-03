@@ -7,3 +7,8 @@ evtSource.addEventListener('animation-loaded',
                            });
 
 evtSource.onmessage = function (event) { console.log('untyped event received: ', event); };
+
+$('.image-preview').on('click',
+                       function () {
+                           $.get('/load-gif?name=' + $(this).attr('data-image-name'));
+                       });

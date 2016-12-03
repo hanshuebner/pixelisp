@@ -20,15 +20,12 @@
             (cl-log:message-description self)
             (cl-log:message-arguments self)))
 
-(defvar *led-commands-queue*)
-
 (defun start (&key (port 8428))
   (setf (cl-log:log-manager)
         (make-instance 'cl-log:log-manager :message-class 'formatted-message))
   (cl-log:start-messenger 'cl-log:text-stream-messenger
                           :stream *standard-output*)
-  (setf *led-commands-queue* (queues:make-queue :simple-cqueue))
-  (leds:start-frame-thrower *led-commands-queue*)
+  (leds:start-frame-thrower)
   (cl-log:log-message :info "Starting hunchentoot on port ~A" port)
   (hunchentoot:start (make-instance 'hunchentoot:easy-acceptor
                                     :port port
@@ -38,7 +35,7 @@
   (loop
     (dolist (gif (directory #P"gifs/*.gif"))
       (handler-case
-          (queues:qpush *led-commands-queue* `(:set-animation ,(leds:load-gif gif)))
+          (leds:send-command :set-animation (leds:load-gif gif))
         (error (e)
           (format t "error loading gif ~A~%~A~%" gif e)
           (sleep .5)))

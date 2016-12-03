@@ -5,7 +5,8 @@
   (:export #:start-frame-thrower
            #:current-animation
            #:load-gif
-           #:name #:images))
+           #:name #:images
+           #:send-command))
 
 (in-package :leds)
 
@@ -54,7 +55,8 @@
                  for fb-x = (if (oddp fb-y) (- 15 fb-x*) fb-x*)
                  for fb-offset = (* (+ (* fb-y 16) fb-x 1) 4)
                  for color-index = (skippy:pixel-ref image image-x image-y)
-                 when (/= (skippy:transparency-index image) color-index)
+                 when (or (not (skippy:transparency-index image))
+                          (/= (skippy:transparency-index image) color-index))
                  do (multiple-value-bind (r g b) (skippy:color-rgb (skippy:color-table-entry color-table color-index))
                       (setf (aref frame-buffer (+ fb-offset 1)) b
                             (aref frame-buffer (+ fb-offset 2)) g
@@ -87,7 +89,11 @@
   (let ((start-time (get-internal-real-time)))
     (write-sequence (led-frame image) output)
     (let* ((write-duration (/ (- (get-internal-real-time) start-time) internal-time-units-per-second))
-           (delay (- (/ (skippy:delay-time image) 100) write-duration)))
+           (delay (- (/ (if (zerop (skippy:delay-time image))
+                            10
+                            (skippy:delay-time image))
+                        100)
+                     write-duration)))
       (when (plusp delay)
         (sleep delay)))))
 
@@ -96,25 +102,25 @@
         *current-animation* animation)
   (events:publish :animation-loaded (name animation)))
 
-(defun stop (output)
+(defun blank (output)
   (setf *current-animation* nil)
   (write-sequence (make-frame-buffer :brightness 0) output))
 
 (defparameter *leds-device* "/dev/spidev0.0")
 
-(defun display-loop (command-queue)
+(defun display-loop (queue)
   (let ((output (open *leds-device* :direction :output
                                     :if-exists :append
                                     :element-type '(unsigned-byte 8))))
     (loop
-      (when-let (command (queues:qpop command-queue))
+      (when-let (command (queues:qpop queue))
         (ecase (first command)
           (:quit
            (return))
           (:set-animation
            (set-current-animation (second command)))
-          (:stop
-           (stop output))))
+          (:blank
+           (blank output))))
       (cond
         (*current-animation*
          (display-frame output (next-image *current-animation*)))
@@ -123,14 +129,20 @@
 
 (defvar *frame-thrower-thread* nil)
 
-(defun start-frame-thrower (command-queue)
+(defvar *commands-queue*)
+
+(defun start-frame-thrower ()
   (when (and *frame-thrower-thread*
              (bt:thread-alive-p *frame-thrower-thread*))
     (error "frame thrower already running"))
   (cl-log:log-message :info "Starting frame-thrower thread")
-  (setf *frame-thrower-thread*
-        (bt:make-thread (lambda ()
-                          (handler-case
-                              (display-loop command-queue)
-                            (error (e)
-                              (cl-log:log-message :error "frame-thrower thread died with error ~A" e)))))))
+  (let ((queue (queues:make-queue :simple-cqueue)))
+    (setf *frame-thrower-thread* (bt:make-thread (lambda ()
+                                                   (handler-case
+                                                       (display-loop queue)
+                                                     (error (e)
+                                                       (cl-log:log-message :error "frame-thrower thread died with error ~A" e)))))
+          *commands-queue* queue)))
+
+(defun send-command (command &rest args)
+  (queues:qpush *commands-queue* `(,command ,@args)))
