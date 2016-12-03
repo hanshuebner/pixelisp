@@ -46,7 +46,7 @@
         ((:meta :http-equiv "X-UA-Compatible" :content "IE=Edge"))
         ((:meta :name "Viewport" :content "width=device-width, initial-scale=1"))
         (:title ,name)
-        (dolist (stylesheet '("bootstrap.min" "ie10-viewport-bug-workaround" "styles"))
+        (dolist (stylesheet '("bootstrap.min" "bootstrap-slider.min" "ie10-viewport-bug-workaround" "styles"))
           (html ((:link :rel "stylesheet" :href (str "css/" stylesheet ".css"))))))
        (:body
         ((:nav :class "navbar navbar-inverse navbar-fixed-top")
@@ -80,9 +80,8 @@
           ,@body))
         ((:script :src "js/jquery.min.js"))
         (:script "window.jQuery || document.write('<script src=\"js/jquery.min.js\"></script>')")
-        ((:script :src "js/bootstrap.min.js"))
-        ((:script :src "js/ie10-viewport-bug-workaround.js"))
-        ((:script :src "js/frontend.js"))))))
+        (dolist (js '("bootstrap.min" "bootstrap-slider.min" "ie10-viewport-bug-workaround" "frontend"))
+          (html ((:script :src (str "js/" js ".js")))))))))
 
 (defmacro html (&body body)
   `(xhtml-generator:html
@@ -105,7 +104,15 @@
                   :height 64))))))
 
 (define-main-page (settings "Settings" "/settings")
-  )
+  "Amphetamin "
+  ((:input :id "chill-factor"
+           :data-slider-id "chill-factor"
+           :type "text"
+           :data-slider-min "0"
+           :data-slider-max "5"
+           :data-slider-step "0.1"
+           :data-slider-value "2"))
+  "Rohypnol")
 
 (defclass sse-event ()
   ((event :initform nil :initarg :event :reader event)
@@ -179,6 +186,10 @@
   (leds:send-command :set-animation (leds:load-gif (make-pathname :name name
                                                                   :defaults #"gifs/.gif")))
   "loaded")
+
+(hunchentoot:define-easy-handler (chill :uri "/chill") ((factor :parameter-type 'parse-number:parse-positive-real-number))
+  (leds:set-chill-factor factor)
+  (format nil "chill factor ~A" factor))
 
 (defun run-program (program &rest args)
   (with-output-to-string (output)

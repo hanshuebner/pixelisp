@@ -6,13 +6,17 @@
            #:current-animation
            #:load-gif
            #:name #:images
-           #:send-command))
+           #:send-command
+           #:set-chill-factor))
 
 (in-package :leds)
 
 (defvar *current-animation* nil)
 (defvar *brightness* 5)
 (defvar *chill-factor* 2)
+
+(defun set-chill-factor (chill-factor)
+  (setf *chill-factor* chill-factor))
 
 (defun current-animation ()
   *current-animation*)

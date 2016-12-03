@@ -12,3 +12,10 @@ $('.image-preview').on('click',
                        function () {
                            $.get('/load-gif?name=' + $(this).attr('data-image-name'));
                        });
+
+$('#chill-factor').slider({
+    formatter: function (value) {
+        if (value > 0) {
+            $.get('/chill?factor=' + value);
+        }
+    }});

@@ -8,7 +8,8 @@
                :xhtmlgen
                :queues.simple-cqueue
                :cl-log
-               :local-time)
+               :local-time
+               :parse-number)
   :serial t
   :components ((:file "events")
                (:file "leds")
