@@ -122,7 +122,7 @@
    (:fieldset
     (:legend "Animation Speed")
     ((:div :class "form-group")
-     ((:label :class "left-slider-label") "Amphetamin")
+     ((:label :class "left-slider-label") "Rohypnol")
      (:princ "&nbsp;&nbsp;&nbsp;")
      ((:input :id "chill-factor"
               :data-slider-id "chill-factor"
@@ -132,7 +132,7 @@
               :data-slider-step "0.1"
               :data-slider-value (format nil "~G" (leds:chill-factor))))
      (:princ "&nbsp;&nbsp;&nbsp;")
-     (:label "Rohypnol")))))
+     (:label "Amphetamin")))))
 
 (defclass sse-event ()
   ((event :initform nil :initarg :event :reader event)

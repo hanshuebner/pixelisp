@@ -16,7 +16,7 @@
 (defvar *brightness* 5)
 
 (defun (setf brightness) (brightness)
-  (send-command :set-brightness brightness))
+  (setf *brightness* brightness))
 
 (defun brightness ()
   *brightness*)
@@ -121,12 +121,6 @@
         *current-animation* animation)
   (events:publish :animation-loaded (name animation)))
 
-(defun set-brightness (brightness)
-  (setf *brightness* brightness)
-  (when *current-animation*
-    (loop for image across (images *current-animation*)
-          do (setf (buffer-brightness (led-frame image)) brightness))))
-
 (defun blank (output)
   (setf *current-animation* nil)
   (write-sequence (make-frame-buffer :brightness 0) output))
@@ -136,7 +130,8 @@
 (defun display-loop (queue)
   (let ((output (open *leds-device* :direction :output
                                     :if-exists :append
-                                    :element-type '(unsigned-byte 8))))
+                                    :element-type '(unsigned-byte 8)))
+        (brightness *brightness*))
     (loop
       (when-let (command (queues:qpop queue))
         (ecase (first command)
@@ -144,12 +139,15 @@
            (return))
           (:set-animation
            (set-current-animation (second command)))
-          (:set-brightness
-           (set-brightness (second command)))
           (:blank
            (blank output))))
       (cond
         (*current-animation*
+         (unless (= brightness *brightness*)
+           ;; Execute brightness change, if any.
+           (setf brightness *brightness*)
+           (loop for image across (images *current-animation*)
+                 do (setf (buffer-brightness (led-frame image)) brightness)))
          (display-frame output (next-image *current-animation*)))
         (t
          (sleep .01))))))
