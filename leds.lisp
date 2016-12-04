@@ -13,7 +13,7 @@
 (in-package :leds)
 
 (defvar *current-animation* nil)
-(defvar *brightness* 5)
+(storage:defvar *brightness* 5)
 
 (defun (setf brightness) (brightness)
   (setf *brightness* brightness))
@@ -21,7 +21,7 @@
 (defun brightness ()
   *brightness*)
 
-(defvar *chill-factor* 2)
+(storage:defvar *chill-factor* 2)
 
 (defun (setf chill-factor) (chill-factor)
   (setf *chill-factor* chill-factor))

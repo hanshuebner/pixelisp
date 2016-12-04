@@ -2,7 +2,7 @@
   :depends-on (:alexandria
                :skippy
                :flexi-streams
-               :bknr.datastore
+               :cl-store
                :hunchentoot
                :drakma
                :xhtmlgen
@@ -11,7 +11,8 @@
                :local-time
                :parse-number)
   :serial t
-  :components ((:file "events")
+  :components ((:file "storage")
+               (:file "events")
                (:file "leds")
                (:file "server")
                (:file "handlers")))
