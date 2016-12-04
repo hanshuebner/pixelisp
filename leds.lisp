@@ -124,8 +124,8 @@
 (defun set-brightness (brightness)
   (setf *brightness* brightness)
   (when *current-animation*
-    (dolist (image (images *current-animation*))
-      (setf (buffer-brightness (led-frame image)) brightness))))
+    (loop for image across (images *current-animation*)
+          do (setf (buffer-brightness (led-frame image)) brightness))))
 
 (defun blank (output)
   (setf *current-animation* nil)
