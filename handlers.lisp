@@ -101,7 +101,8 @@
                        :key #'pathname-name))
     (html ((:div :class "image-preview" :data-image-name (pathname-name image))
            ((:img :src (format nil "/gif/~A" (file-namestring image))
-                  :height 64))))))
+                  :height 64
+                  :title (pathname-name image)))))))
 
 (define-main-page (settings "Settings" "/settings")
   (:form
