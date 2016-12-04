@@ -25,7 +25,7 @@
         (make-instance 'cl-log:log-manager :message-class 'formatted-message))
   (cl-log:start-messenger 'cl-log:text-stream-messenger
                           :stream *standard-output*)
-  (storage:restore)
+  (storage:start)
   (leds:start-frame-thrower)
   (cl-log:log-message :info "Starting hunchentoot on port ~A" port)
   (hunchentoot:start (make-instance 'hunchentoot:easy-acceptor

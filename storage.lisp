@@ -4,8 +4,11 @@
   (:use :cl :alexandria)
   (:shadow cl:defvar)
   (:export #:defvar
-           #:maybe-save
-           #:restore))
+           #:start))
+
+;;; Note: this storage mechanism must only be used for immutable
+;;; variable values, as it does not provide a thread safe way to read
+;;; variable states while saving.
 
 (in-package :storage)
 
@@ -46,3 +49,13 @@
     (dolist (variable (hash-table-keys *persistent-variables*))
       (setf (symbol-value variable) (gethash variable *persistent-variables*)))
     (cl-log:log-message :info "Restored settings from ~A" (truename *state-file*))))
+
+(defparameter *snapshot-interval* 5)
+
+(defun start ()
+  (restore)
+  (bt:make-thread (lambda ()
+                    (loop
+                      (sleep *snapshot-interval*)
+                      (maybe-save)))
+                  :name "Storage snapshot"))
