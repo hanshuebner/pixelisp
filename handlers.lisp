@@ -208,11 +208,16 @@
                                                                   :defaults #"gifs/.gif")))
   "loaded")
 
-(hunchentoot:define-easy-handler (chill :uri "/chill") ((factor :parameter-type 'parse-number:parse-positive-real-number))
+(defun parse-float (string)
+  (float (parse-number:parse-positive-real-number string)))
+
+(hunchentoot:define-easy-handler (chill :uri "/chill") ((factor :parameter-type 'parse-float))
+  (check-type factor (float 0.0 5.0))
   (setf (leds:chill-factor) factor)
   (format nil "chill factor ~A" factor))
 
 (hunchentoot:define-easy-handler (brightness :uri "/brightness") ((level :parameter-type 'integer))
+  (check-type level (integer 0 7))
   (setf (leds:brightness) level)
   (format nil "brightness level ~A" level))
 
