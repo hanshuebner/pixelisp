@@ -14,7 +14,7 @@ $('.image-preview').on('click',
                        });
 
 $('#chill-factor')
-    .slider();
+    .slider({ reversed: true });
 $('#chill-factor')
     .on('slide', function (event) {
         $.post('/chill?factor=' + event.value);
