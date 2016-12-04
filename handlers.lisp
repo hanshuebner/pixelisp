@@ -5,7 +5,11 @@
 
 (in-package :handlers)
 
-(defvar *gif-folder-dispatcher* (hunchentoot:create-folder-dispatcher-and-handler "/gif/" #P"gifs/"))
+(defparameter *html-directory* #P"html/")
+(defparameter *gifs-directory* #P"gifs/")
+
+(defvar *gif-folder-dispatcher* (hunchentoot:create-folder-dispatcher-and-handler "/gif/"
+                                                                                  *gifs-directory*))
 
 (pushnew *gif-folder-dispatcher* hunchentoot:*dispatch-table*)
 
@@ -31,23 +35,28 @@
       (setf (car where) entry)
       (appendf *pages* (list entry)))))
 
-(defmacro define-main-page ((function-name name uri) &body body)
+(defmacro define-main-page ((name title uri) &body body)
   `(progn
-     (register-page ',function-name ,name ,uri)
-     (hunchentoot:define-easy-handler (,function-name :uri ,uri) ()
-       (page (,uri ,name)
+     (register-page ',name ,title ,uri)
+     (hunchentoot:define-easy-handler (,name :uri ,uri) ()
+       (page (',name ,uri ,title)
          ,@body))))
 
-(defmacro page ((uri name) &body body)
+(defmacro page ((name uri title) &body body)
   `(with-output-to-string (*html-output*)
      (with-html5 (*html-output*)
        (:head
         ((:meta :charset "utf-8"))
         ((:meta :http-equiv "X-UA-Compatible" :content "IE=Edge"))
         ((:meta :name "Viewport" :content "width=device-width, initial-scale=1"))
-        (:title ,name)
-        (dolist (stylesheet '("bootstrap.min" "bootstrap-slider.min" "ie10-viewport-bug-workaround" "styles"))
-          (html ((:link :rel "stylesheet" :href (str "css/" stylesheet ".css"))))))
+        (:title ,title)
+        (dolist (stylesheet (list "bootstrap.min" "bootstrap-slider.min"
+                                  "ie10-viewport-bug-workaround" "styles"
+                                  (string-downcase (symbol-name ,name))))
+          (when (probe-file (make-pathname :name stylesheet
+                                           :type "css"
+                                           :defaults (merge-pathnames #P"css/" *html-directory*)))
+            (html ((:link :rel "stylesheet" :href (str "css/" stylesheet ".css")))))))
        (:body
         ((:nav :class "navbar navbar-inverse navbar-fixed-top")
          ((:div :class "container")
@@ -80,8 +89,12 @@
           ,@body))
         ((:script :src "js/jquery.min.js"))
         (:script "window.jQuery || document.write('<script src=\"js/jquery.min.js\"></script>')")
-        (dolist (js '("bootstrap.min" "bootstrap-slider.min" "ie10-viewport-bug-workaround" "frontend"))
-          (html ((:script :src (str "js/" js ".js")))))))))
+        (dolist (js (list "bootstrap.min" "bootstrap-slider.min" "ie10-viewport-bug-workaround"
+                          (string-downcase (symbol-name ,name))))
+          (when (probe-file (make-pathname :name js
+                                           :type "js"
+                                           :defaults (merge-pathnames #P"js/" *html-directory*)))
+            (html ((:script :src (str "js/" js ".js"))))))))))
 
 (defmacro html (&body body)
   `(xhtml-generator:html
@@ -96,13 +109,56 @@
       ((:div :id "current-image-name") (:princ (leds:name current-animation))))))
 
 (define-main-page (gifs "GIFs" "/gifs")
-  (dolist (image (sort (directory #"gifs/*.gif")
+  (dolist (image (sort (directory (make-pathname :name :wild :type "gif"
+                                                 :defaults *gifs-directory*))
                        'string-lessp
                        :key #'pathname-name))
     (html ((:div :class "image-preview" :data-image-name (pathname-name image))
            ((:img :src (format nil "/gif/~A" (file-namestring image))
                   :height 64
                   :title (pathname-name image)))))))
+
+(defun import-gif (input-file output-file)
+  (handler-case
+      (utils:run-program "gifsicle" "--resize" "_x16"
+                         "-i" (namestring input-file)
+                         "-o" (namestring output-file))
+    (error (e)
+      (cl-log:log-message :error "Error importing ~A to ~A: ~A" input-file output-file e))))
+
+(define-main-page (upload "Upload" "/upload")
+  ((:form :method "POST" :enctype "multipart/form-data")
+   (when-let (file (hunchentoot:post-parameter "file"))
+     (destructuring-bind (path file-name content-type) file
+       (cl-log:log-message :info "File ~A uploaded to ~A, content-type ~A" file-name path content-type)
+       (html (:fieldset
+              (:legend "Upload result")
+              (cond
+                ((not (equal content-type "image/gif"))
+                 (html ((:div :class "alert alert-danger")
+                        "Invalid file type, only GIF is supported")))
+
+                (t
+                 (let ((gif-pathname (make-pathname :name (pathname-name file-name)
+                                                    :type "gif"
+                                                    :defaults *gifs-directory*)))
+                   (import-gif path gif-pathname)
+                   (if (probe-file gif-pathname)
+                       (html ((:div :class "alert alert-success")
+                              "File has been imported")
+                         ((:img :id "current-image"
+                                :src (format nil "/gif/~A.gif" (pathname-name gif-pathname))
+                                :height 256)))
+                       (html ((:div :class "alert alert-danger")
+                              "File could not be imported (gifsicle failed?)"))))))))))
+   (html
+     (:fieldset
+      (:legend "Upload a new GIF")
+      ((:div :class "form-group")
+       ((:label :class "label") "Upload a GIF file")
+       ((:input :type "file" :name "file")))
+      ((:div :class "form-group")
+       ((:button :type "submit" :class "btn btn-primary") "Upload"))))))
 
 (define-main-page (settings "Settings" "/settings")
   (:form
@@ -205,33 +261,21 @@
 
 (hunchentoot:define-easy-handler (load-gif :uri "/load-gif") (name)
   (leds:send-command :set-animation (leds:load-gif (make-pathname :name name
-                                                                  :defaults #"gifs/.gif")))
+                                                                  :defaults (make-pathname :type "gif"
+                                                                                           :defaults *gifs-directory*))))
   "loaded")
 
 (defun parse-float (string)
   (float (parse-number:parse-positive-real-number string)))
 
 (hunchentoot:define-easy-handler (chill :uri "/chill") ((factor :parameter-type 'parse-float))
-  (check-type factor (float 0.0 5.0))
-  (setf (leds:chill-factor) factor)
-  (format nil "chill factor ~A" factor))
+  (when (eq (hunchentoot:request-method*) :post)
+    (check-type factor (float 0.0 5.0))
+    (setf (leds:chill-factor) factor))
+  (format nil "chill factor ~A" (leds:chill-factor)))
 
 (hunchentoot:define-easy-handler (brightness :uri "/brightness") ((level :parameter-type 'integer))
-  (check-type level (integer 0 7))
-  (setf (leds:brightness) level)
-  (format nil "brightness level ~A" level))
-
-(defun run-program (program &rest args)
-  (with-output-to-string (output)
-    (multiple-value-bind (status exit-code)
-        (ccl:external-process-status (ccl:run-program program args
-                                                      :wait t
-                                                      :output output))
-      (declare (ignore status))
-      (unless (zerop exit-code)
-        (error 'simple-error
-               :format-control "shell command \"~A~@[ ~A~]\" failed with exit code ~D~@[~%~A~]"
-               :format-arguments (list program args exit-code (get-output-stream-string output)))))))
-
-(hunchentoot:define-easy-handler (upload-gif :uri "/upload-gif") (name)
-  )
+  (when (eq (hunchentoot:request-method*) :post)
+    (check-type level (integer 0 7))
+    (setf (leds:brightness) level))
+  (format nil "brightness level ~A" (leds:brightness)))

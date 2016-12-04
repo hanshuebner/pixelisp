@@ -9,9 +9,11 @@
                :queues.simple-cqueue
                :cl-log
                :local-time
-               :parse-number)
+               :parse-number
+               :yason)
   :serial t
-  :components ((:file "storage")
+  :components ((:file "utils")
+               (:file "storage")
                (:file "events")
                (:file "leds")
                (:file "server")
