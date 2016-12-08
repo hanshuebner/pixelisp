@@ -10,9 +10,11 @@
                :cl-log
                :local-time
                :parse-number
-               :yason)
+               :yason
+               :cl-ppcre)
   :serial t
   :components ((:file "utils")
+               (:file "remote")
                (:file "storage")
                (:file "events")
                (:file "leds")
