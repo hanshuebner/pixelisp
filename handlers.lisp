@@ -109,14 +109,17 @@
       ((:div :id "current-image-name") (:princ (leds:name current-animation))))))
 
 (define-main-page (gifs "GIFs" "/gifs")
-  (dolist (image (sort (directory (make-pathname :name :wild :type "gif"
-                                                 :defaults *gifs-directory*))
-                       'string-lessp
-                       :key #'pathname-name))
-    (html ((:div :class "image-preview" :data-image-name (pathname-name image))
-           ((:img :src (format nil "/gif/~A" (file-namestring image))
-                  :height 64
-                  :title (pathname-name image)))))))
+  (:form
+   (dolist (image (sort (directory (make-pathname :name :wild :type "gif"
+                                                  :defaults *gifs-directory*))
+                        'string-lessp
+                        :key #'pathname-name))
+     (html ((:div :class "image-preview")
+            ((:input :type "checkbox"))
+            ((:img :src (format nil "/gif/~A" (file-namestring image))
+                   :height 64
+                   :title (pathname-name image)
+                   :data-image-name (pathname-name image))))))))
 
 (defun import-gif (input-file output-file)
   (handler-case
@@ -226,7 +229,7 @@
 
 (defclass sse-client ()
   ((stream :initarg :stream :reader stream)
-   (lock :initform (bt:make-lock "event-stream-lock") :accessor lock)
+   (lock :initform (ccl:make-lock "event-stream-lock") :accessor lock)
    (id :initform (ccl::atomic-incf *client-id*) :reader id)))
 
 (defmethod print-object ((client sse-client) stream)
@@ -235,7 +238,7 @@
 
 (defmethod send-event ((client sse-client) event)
   (cl-log:log-message :info "Sending SSE event ~A to client ~A" event client)
-  (bt:with-lock-held ((lock client))
+  (ccl:with-lock-grabbed ((lock client))
     (write-string (event-string event) (stream client))
     (finish-output (stream client))))
 

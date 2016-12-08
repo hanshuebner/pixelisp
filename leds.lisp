@@ -158,15 +158,16 @@
 
 (defun start-frame-thrower ()
   (when (and *frame-thrower-thread*
-             (bt:thread-alive-p *frame-thrower-thread*))
+             (not (ccl:process-exhausted-p *frame-thrower-thread*)))
     (error "frame thrower already running"))
   (cl-log:log-message :info "Starting frame-thrower thread")
   (let ((queue (queues:make-queue :simple-cqueue)))
-    (setf *frame-thrower-thread* (bt:make-thread (lambda ()
-                                                   (handler-case
-                                                       (display-loop queue)
-                                                     (error (e)
-                                                       (cl-log:log-message :error "frame-thrower thread died with error ~A" e)))))
+    (setf *frame-thrower-thread* (ccl:process-run-function "frame-thrower"
+                                                           (lambda ()
+                                                             (handler-case
+                                                                 (display-loop queue)
+                                                               (error (e)
+                                                                 (cl-log:log-message :error "frame-thrower thread died with error ~A" e)))))
           *commands-queue* queue)))
 
 (defun send-command (command &rest args)

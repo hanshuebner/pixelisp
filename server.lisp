@@ -58,4 +58,4 @@
                            (ccl:quit)))
   (start)
   (play-all)
-  (bt:join-thread (bt:current-thread)))
+  (ccl:join-process ccl:*current-process*))

@@ -54,8 +54,8 @@
 
 (defun start ()
   (restore)
-  (bt:make-thread (lambda ()
-                    (loop
-                      (sleep *snapshot-interval*)
-                      (maybe-save)))
-                  :name "Storage snapshot"))
+  (ccl:process-run-function "store-snapshot"
+                            (lambda ()
+                              (loop
+                                (sleep *snapshot-interval*)
+                                (maybe-save)))))
