@@ -21,6 +21,7 @@
             (cl-log:message-arguments self)))
 
 (defun play-all ()
+  (setf *random-state* (make-random-state t))
   (loop
     (cl-log:log-message :info "Scanning GIF directory")
     (let ((gifs (directory #P"gifs/*.gif"))
@@ -49,7 +50,6 @@
         (make-instance 'cl-log:log-manager :message-class 'formatted-message))
   (cl-log:start-messenger 'cl-log:text-stream-messenger
                           :stream *standard-output*)
-  (setf *random-state* (make-random-state t))
   (storage:start)
   (display:start)
   (cl-log:log-message :info "Starting hunchentoot on port ~A" port)
