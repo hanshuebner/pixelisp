@@ -126,20 +126,13 @@
 
 (defparameter *leds-device* "/dev/spidev0.0")
 
-(defun try-receive ()
-  (handler-case
-      (erlangen:receive :timeout 0)
-    (erlangen:timeout (e)
-      (declare (ignore e))
-      nil)))
-
 (defun display-loop ()
   (let ((output (open *leds-device* :direction :output
                                     :if-exists :append
                                     :element-type '(unsigned-byte 8)))
         (brightness *brightness*))
     (loop
-      (when-let (command (try-receive))
+      (when-let (command (utils:try-receive))
         (ecase (first command)
           (:quit
            (return))

@@ -2,7 +2,10 @@
 
 (defpackage :utils
   (:use :cl :alexandria)
-  (:export #:run-program))
+  (:shadow #:sleep)
+  (:export #:run-program
+           #:try-receive
+           #:sleep))
 
 (in-package :utils)
 
@@ -17,3 +20,15 @@
         (error 'simple-error
                :format-control "shell command \"~A~@[ ~A~]\" failed with exit code ~D~@[~%~A~]"
                :format-arguments (list program args exit-code (get-output-stream-string output)))))))
+
+(defun try-receive ()
+  (handler-case
+      (erlangen:receive :timeout 0)
+    (erlangen:timeout (e)
+      (declare (ignore e))
+      nil)))
+
+(defun sleep (seconds)
+  (let ((until (+ (get-universal-time) seconds)))
+    (erlangen:select
+     ((> (get-universal-time) until) (_) t))))

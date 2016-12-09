@@ -1,7 +1,8 @@
 ;; -*- Lisp -*-
 
 (defpackage :remote
-  (:use :cl :alexandria))
+  (:use :cl :alexandria)
+  (:export #:start))
 
 (in-package :remote)
 
@@ -13,7 +14,7 @@
     (when match
       (intern (ppcre:regex-replace-all "_" (svref registers 0) "-") :keyword))))
 
-(defun read-messages (agent)
+(defun start (agent)
   (erlangen:spawn (lambda ()
                     (erlangen:register :remote-control-reader)
                     (let ((socket (ccl:make-socket :remote-host "localhost" :remote-port *remote-port*)))

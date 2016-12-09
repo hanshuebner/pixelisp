@@ -14,16 +14,17 @@
 
 (cl:defvar *persistent-variables* (make-hash-table))
 
-(defun from-storage (variable)
-  (gethash variable *persistent-variables*))
+(defun from-storage (variable default)
+  (gethash variable *persistent-variables* default))
 
 (defun register-persistent-variable (variable initial-value)
   (setf (gethash variable *persistent-variables*) initial-value))
 
 (defmacro defvar (variable initial-value &optional docstring)
-  `(progn
-     (cl:defvar ,variable (load-time-value (from-storage ',variable)) ,docstring)
-     (register-persistent-variable ',variable ,initial-value)))
+  (let ((initial-value initial-value))
+    `(progn
+       (cl:defvar ,variable (load-time-value (from-storage ',variable ,initial-value)) ,docstring)
+       (register-persistent-variable ',variable ,initial-value))))
 
 (cl:defvar *last-stored-state* nil)
 (defparameter *state-file* #P"settings.dat")
