@@ -101,12 +101,12 @@
      ,@body))
 
 (define-main-page (home "Home" "/")
-  (when-let (current-animation (leds:current-animation))
+  (when-let (current-animation (display:current-animation))
     (html
       ((:img :id "current-image"
-             :src (format nil "/gif/~A.gif" (leds:name current-animation))
+             :src (format nil "/gif/~A.gif" (display:name current-animation))
              :height 512))
-      ((:div :id "current-image-name") (:princ (leds:name current-animation))))))
+      ((:div :id "current-image-name") (:princ (display:name current-animation))))))
 
 (define-main-page (gifs "GIFs" "/gifs")
   (:form
@@ -176,7 +176,7 @@
               :data-slider-min "1"
               :data-slider-max "7"
               :data-slider-step "1"
-              :data-slider-value (format nil "~A" (leds:brightness))))
+              :data-slider-value (format nil "~A" (display:brightness))))
      (:princ "&nbsp;&nbsp;&nbsp;")
      (:label "Bright")))
    (:fieldset
@@ -190,7 +190,7 @@
               :data-slider-min "0"
               :data-slider-max "5"
               :data-slider-step "0.1"
-              :data-slider-value (format nil "~G" (leds:chill-factor))))
+              :data-slider-value (format nil "~G" (display:chill-factor))))
      (:princ "&nbsp;&nbsp;&nbsp;")
      (:label "Amphetamin")))))
 
@@ -263,9 +263,10 @@
         (cl-log:log-message :info "Event client ~A disconnected" client)))))
 
 (hunchentoot:define-easy-handler (load-gif :uri "/load-gif") (name)
-  (leds:send-command :set-animation (leds:load-gif (make-pathname :name name
-                                                                  :defaults (make-pathname :type "gif"
-                                                                                           :defaults *gifs-directory*))))
+  (erlangen:send (list :set-animation (display:load-gif (make-pathname :name name
+                                                                       :defaults (make-pathname :type "gif"
+                                                                                                :defaults *gifs-directory*))))
+                 :display)
   "loaded")
 
 (defun parse-float (string)
@@ -274,11 +275,11 @@
 (hunchentoot:define-easy-handler (chill :uri "/chill") ((factor :parameter-type 'parse-float))
   (when (eq (hunchentoot:request-method*) :post)
     (check-type factor (float 0.0 5.0))
-    (setf (leds:chill-factor) factor))
-  (format nil "chill factor ~A" (leds:chill-factor)))
+    (setf (display:chill-factor) factor))
+  (format nil "chill factor ~A" (display:chill-factor)))
 
 (hunchentoot:define-easy-handler (brightness :uri "/brightness") ((level :parameter-type 'integer))
   (when (eq (hunchentoot:request-method*) :post)
     (check-type level (integer 0 7))
-    (setf (leds:brightness) level))
-  (format nil "brightness level ~A" (leds:brightness)))
+    (setf (display:brightness) level))
+  (format nil "brightness level ~A" (display:brightness)))

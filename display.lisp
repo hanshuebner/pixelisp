@@ -1,16 +1,15 @@
 ;; -*- Lisp -*-
 
-(defpackage :leds
+(defpackage :display
   (:use :cl :alexandria)
-  (:export #:start-frame-thrower
+  (:export #:start
            #:current-animation
            #:load-gif
            #:name #:images
-           #:send-command
            #:chill-factor
            #:brightness))
 
-(in-package :leds)
+(in-package :display)
 
 (defvar *current-animation* nil)
 (storage:defvar *brightness* 5)
@@ -127,13 +126,20 @@
 
 (defparameter *leds-device* "/dev/spidev0.0")
 
-(defun display-loop (queue)
+(defun try-receive ()
+  (handler-case
+      (erlangen:receive :timeout 0)
+    (erlangen:timeout (e)
+      (declare (ignore e))
+      nil)))
+
+(defun display-loop ()
   (let ((output (open *leds-device* :direction :output
                                     :if-exists :append
                                     :element-type '(unsigned-byte 8)))
         (brightness *brightness*))
     (loop
-      (when-let (command (queues:qpop queue))
+      (when-let (command (try-receive))
         (ecase (first command)
           (:quit
            (return))
@@ -154,21 +160,9 @@
 
 (defvar *frame-thrower-thread* nil)
 
-(defvar *commands-queue*)
-
-(defun start-frame-thrower ()
+(defun start ()
   (when (and *frame-thrower-thread*
              (not (ccl:process-exhausted-p *frame-thrower-thread*)))
     (error "frame thrower already running"))
-  (cl-log:log-message :info "Starting frame-thrower thread")
-  (let ((queue (queues:make-queue :simple-cqueue)))
-    (setf *frame-thrower-thread* (ccl:process-run-function "frame-thrower"
-                                                           (lambda ()
-                                                             (handler-case
-                                                                 (display-loop queue)
-                                                               (error (e)
-                                                                 (cl-log:log-message :error "frame-thrower thread died with error ~A" e)))))
-          *commands-queue* queue)))
-
-(defun send-command (command &rest args)
-  (queues:qpush *commands-queue* `(,command ,@args)))
+  (cl-log:log-message :info "Starting frame-thrower agent")
+  (erlangen:register :display (erlangen:spawn 'display-loop)))

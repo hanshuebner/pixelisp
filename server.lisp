@@ -27,7 +27,7 @@
                           :stream *standard-output*)
   (setf *random-state* (make-random-state t))
   (storage:start)
-  (leds:start-frame-thrower)
+  (display:start)
   (cl-log:log-message :info "Starting hunchentoot on port ~A" port)
   (hunchentoot:start (make-instance 'hunchentoot:easy-acceptor
                                     :port port
@@ -42,7 +42,8 @@
         (let ((gif (alexandria:random-elt gifs)))
           (cl-log:log-message :info "Loading ~A" gif)
           (handler-case
-              (leds:send-command :set-animation (leds:load-gif gif))
+              (erlangen:send (list  :set-animation (display:load-gif gif))
+                             :display)
             (error (e)
               (cl-log:log-message :error "Error loading gif ~A~%~A~%" gif e)
               (sleep .5))))

@@ -6,17 +6,17 @@
                :hunchentoot
                :drakma
                :xhtmlgen
-               :queues.simple-cqueue
                :cl-log
                :local-time
                :parse-number
                :yason
+               :erlangen
                :cl-ppcre)
   :serial t
   :components ((:file "utils")
                (:file "remote")
                (:file "storage")
                (:file "events")
-               (:file "leds")
+               (:file "display")
                (:file "server")
                (:file "handlers")))
