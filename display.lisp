@@ -131,6 +131,7 @@
                                     :if-exists :append
                                     :element-type '(unsigned-byte 8)))
         (brightness *brightness*))
+    (blank output)
     (loop
       (when-let (command (utils:try-receive))
         (ecase (first command)
@@ -158,6 +159,5 @@
              (not (ccl:process-exhausted-p *frame-thrower-thread*)))
     (error "frame thrower already running"))
   (cl-log:log-message :info "Starting frame-thrower agent")
-  (erlangen:register :display (erlangen:spawn (utils:agent-body
-                                                (display-loop))
-                                              :attach :link)))
+  (utils:with-agent :display
+    (display-loop)))

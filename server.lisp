@@ -35,23 +35,19 @@
   (storage:start)
   (display:start)
   (cl-log:log-message :info "Starting hunchentoot on port ~A" port)
-  (hunchentoot:start (make-instance 'hunchentoot:easy-acceptor
-                                    :port port
-                                    :document-root #P "html/"))
-  (erlangen:spawn (utils:agent-body
-                   (erlangen:register :main)
-                   (remote:start :main)
-                   (loop
-                     (erlangen:spawn (utils:agent-body
-                                      (erlangen:register :player)
-                                      (play-all))
-                                     :attach :monitor)
-                     (wait-for-key :key-power)
-                     (erlangen:exit 'stopped :player)
-                     (erlangen:unregister :player)
-                     (erlangen:send (list :blank) :display)
-                     (wait-for-key :key-power)))
-                  :attach :link))
+  (when port
+    (hunchentoot:start (make-instance 'hunchentoot:easy-acceptor
+                                      :port port
+                                      :document-root #P "html/")))
+  (utils:with-agent :main
+    (remote:start (erlangen:agent))
+    (loop
+      (utils:with-agent :player
+        (play-all))
+      (wait-for-key :key-power)
+      (erlangen:exit 'stopped :player)
+      (erlangen:send (list :blank) :display)
+      (wait-for-key :key-power))))
 
 (defun main (command-line-arguments)
   (declare (ignore command-line-arguments))

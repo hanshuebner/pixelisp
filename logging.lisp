@@ -27,6 +27,12 @@
   (cl-log:start-messenger 'cl-log:text-stream-messenger
                           :name :console
                           :stream *standard-output*)
-  (cl-log:start-messenger 'cl-log:text-file-messenger
-                          :name :logfile
-                          :filename "game-frame.log"))
+  (let ((stream (open "game-frame.log"
+                      :direction :output
+                      :element-type :default
+                      :if-does-not-exist :create
+                      :if-exists :append
+                      :sharing :lock)))
+    (cl-log:start-messenger 'cl-log:text-stream-messenger
+                            :name :logfile
+                            :stream stream)))

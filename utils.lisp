@@ -6,7 +6,7 @@
   (:export #:run-program
            #:try-receive
            #:sleep
-           #:agent-body))
+           #:with-agent))
 
 (in-package :utils)
 
@@ -34,9 +34,19 @@
     (erlangen:select
      ((> (get-universal-time) until) (_) t))))
 
-(defmacro agent-body (&body body)
-  `(lambda ()
-     (handler-bind
-         ((erlangen.agent:exit (lambda (e)
-                                 (cl-log:log-message :info "agent ~A exiting: ~A" (erlangen:agent) e))))
-       ,@body)))
+(defmacro with-agent (name &body body)
+  (assert (keywordp name))
+  (let ((agent (gensym "AGENT")))
+    `(let ((,agent (erlangen:spawn (lambda ()
+                                     (cl-log:log-message :info "agent ~A starting" ,name)
+                                     (unwind-protect
+                                          (handler-bind
+                                              ((error (lambda (e)
+                                                        (print "handle error")
+                                                        (cl-log:log-message :info "agent ~A exiting with error: ~A" ,name e))))
+                                            (erlangen:exit (progn ,@body)))
+                                       (erlangen:unregister ,name)))
+                                   :attach :monitor)))
+       (erlangen:register ,name ,agent)
+       (setf (erlangen.agent::agent-symbol ,agent) ,name)
+       ,agent)))
