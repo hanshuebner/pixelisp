@@ -25,4 +25,8 @@
   (setf (cl-log:log-manager)
         (make-instance 'cl-log:log-manager :message-class 'formatted-message))
   (cl-log:start-messenger 'cl-log:text-stream-messenger
-                          :stream *standard-output*))
+                          :name :console
+                          :stream *standard-output*)
+  (cl-log:start-messenger 'cl-log:text-file-messenger
+                          :name :logfile
+                          :filename "game-frame.log"))

@@ -60,5 +60,4 @@
                            (format t "Exiting...~%")
                            (ccl:quit)))
   (start)
-  (play-all)
   (ccl:join-process ccl:*current-process*))
