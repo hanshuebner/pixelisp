@@ -5,7 +5,8 @@
   (:shadow #:sleep)
   (:export #:run-program
            #:try-receive
-           #:sleep))
+           #:sleep
+           #:agent-body))
 
 (in-package :utils)
 
@@ -32,3 +33,10 @@
   (let ((until (+ (get-universal-time) seconds)))
     (erlangen:select
      ((> (get-universal-time) until) (_) t))))
+
+(defmacro agent-body (&body body)
+  `(lambda ()
+     (handler-bind
+         ((erlangen.agent:exit (lambda (e)
+                                 (cl-log:log-message :info "agent ~A exiting: ~A" (erlangen:agent) e))))
+       ,@body)))

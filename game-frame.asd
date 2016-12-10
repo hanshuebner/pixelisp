@@ -14,6 +14,7 @@
                :cl-ppcre)
   :serial t
   :components ((:file "utils")
+               (:file "logging")
                (:file "remote")
                (:file "storage")
                (:file "events")

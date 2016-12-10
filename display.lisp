@@ -158,4 +158,6 @@
              (not (ccl:process-exhausted-p *frame-thrower-thread*)))
     (error "frame thrower already running"))
   (cl-log:log-message :info "Starting frame-thrower agent")
-  (erlangen:register :display (erlangen:spawn 'display-loop)))
+  (erlangen:register :display (erlangen:spawn (utils:agent-body
+                                                (display-loop))
+                                              :attach :link)))
