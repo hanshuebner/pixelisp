@@ -263,10 +263,10 @@
         (cl-log:log-message :info "Event client ~A disconnected" client)))))
 
 (hunchentoot:define-easy-handler (load-gif :uri "/load-gif") (name)
-  (erlangen:send (list :set-animation (display:load-gif (make-pathname :name name
-                                                                       :defaults (make-pathname :type "gif"
-                                                                                                :defaults *gifs-directory*))))
-                 :display)
+  (messaging:send :display
+                  :set-animation (display:load-gif (make-pathname :name name
+                                                                  :defaults (make-pathname :type "gif"
+                                                                                           :defaults *gifs-directory*))))
   "loaded")
 
 (defun parse-float (string)

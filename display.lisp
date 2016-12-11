@@ -133,12 +133,12 @@
         (brightness *brightness*))
     (blank output)
     (loop
-      (when-let (command (utils:try-receive))
-        (ecase (first command)
+      (when-let (message (messaging:try-receive))
+        (ecase (messaging:code message)
           (:quit
            (return))
           (:set-animation
-           (set-current-animation (second command)))
+           (apply #'set-current-animation (messaging:args message)))
           (:blank
            (blank output))))
       (cond
@@ -159,5 +159,5 @@
              (not (ccl:process-exhausted-p *frame-thrower-thread*)))
     (error "frame thrower already running"))
   (cl-log:log-message :info "Starting frame-thrower agent")
-  (utils:with-agent :display
-    (display-loop)))
+  (messaging:make-agent :display 'display-loop
+                        :parent ccl:*current-process*))

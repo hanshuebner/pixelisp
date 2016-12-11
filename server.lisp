@@ -15,20 +15,13 @@
         (let ((gif (alexandria:random-elt gifs)))
           (cl-log:log-message :info "Loading ~A" gif)
           (handler-case
-              (erlangen:send (list :set-animation (display:load-gif gif)) :display)
+              (messaging:send :display :set-animation (display:load-gif gif))
             (error (e)
               (cl-log:log-message :error "Error loading gif ~A~%~A~%" gif e)
               (sleep .5))))
-        (utils:sleep 30)
+        (sleep 30)
         (when (/= last-update (file-write-date #P"gifs/"))
           (return))))))
-
-(defun wait-for-key (key)
-  (loop
-    (let ((message (erlangen:receive)))
-      (cl-log:log-message :info "received message ~A" message)
-      (when (equal message (list :key-pressed key))
-        (return)))))
 
 (defun start (&key (port 80))
   (logging:start)
@@ -39,15 +32,17 @@
     (hunchentoot:start (make-instance 'hunchentoot:easy-acceptor
                                       :port port
                                       :document-root #P "html/")))
-  (utils:with-agent :main
-    (remote:start (erlangen:agent))
-    (loop
-      (utils:with-agent :player
-        (play-all))
-      (wait-for-key :key-power)
-      (erlangen:exit 'stopped :player)
-      (erlangen:send (list :blank) :display)
-      (wait-for-key :key-power))))
+  (messaging:make-agent :main
+                        (lambda ()
+                          (remote-control:start :main)
+                          (loop
+                            (messaging:make-agent :app 'play-all
+                                                  :parent ccl:*current-process*)
+                            (messaging:wait-for '(:key-pressed :key-power) :from :remote-control-reader)
+                            (messaging:exit :agent-name :app)
+                            (messaging:wait-for '(:exit) :from :app)
+                            (messaging:send :display :blank)
+                            (messaging:wait-for '(:key-pressed :key-power) :from :remote-control-reader)))))
 
 (defun main (command-line-arguments)
   (declare (ignore command-line-arguments))
