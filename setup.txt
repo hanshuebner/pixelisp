@@ -5,13 +5,13 @@ Edit /boot/config.txt and uncomment
 dtparam=spi=on
 dtoverlay=lirc-rpi,gpio_in_pull=low
 
+# Install prerequisite software
+
+sudo apt-get install -y lirc gifsicle subversion git
+
 # Configure lircd
 
 sudo cp lirc/* /etc/lirc
-
-# Install prerequisite software
-
-apt-get install gifsicle subversion git
 
 # Install CCL
 
