@@ -13,6 +13,12 @@ sudo apt-get install -y lirc gifsicle subversion git
 
 sudo cp lirc/* /etc/lirc
 
+# Make user part of the spi group
+
+sudo usermod -G spi $USER
+
+# Reboot
+
 # Install CCL
 
 svn co http://svn.clozure.com/publicsvn/openmcl/release/1.11/linuxarm/ccl
@@ -34,8 +40,3 @@ sudo /sbin/setcap 'cap_net_bind_service=+ep' ~/ccl/armcl
 ccl -n -l http://beta.quicklisp.org/quicklisp.lisp -e '(quicklisp-quickstart:install)' -e '(ql:quickload :buildapp)'
 
 # Install buildapp
-
-...
-
-
-

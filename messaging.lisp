@@ -62,7 +62,8 @@
 (defun maybe-notify-parent (reason data)
   (when (and (typep ccl:*current-process* 'agent)
              (parent ccl:*current-process*))
-    (safe-queue:enqueue (make-instance :code 'exit
+    (safe-queue:enqueue (make-instance 'message
+                                       :code 'exit
                                        :args (list reason data))
                          (mailbox (parent ccl:*current-process*)))))
 
