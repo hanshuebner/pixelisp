@@ -3,7 +3,11 @@
 Edit /boot/config.txt and uncomment
 
 dtparam=spi=on
-dtoverlay=lirc-rpi
+dtoverlay=lirc-rpi,gpio_in_pull=low
+
+# Configure lircd
+
+sudo cp lirc/* /etc/lirc
 
 # Install prerequisite software
 
