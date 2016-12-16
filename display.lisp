@@ -6,27 +6,15 @@
            #:current-animation
            #:load-gif
            #:name #:images
-           #:chill-factor
-           #:brightness))
+           #:brightness
+           #:chill-factor))
 
 (in-package :display)
 
 (defvar *current-animation* nil)
-(storage:defvar *brightness* 5)
 
-(defun (setf brightness) (brightness)
-  (setf *brightness* brightness))
-
-(defun brightness ()
-  *brightness*)
-
-(storage:defvar *chill-factor* 2)
-
-(defun (setf chill-factor) (chill-factor)
-  (setf *chill-factor* chill-factor))
-
-(defun chill-factor ()
-  *chill-factor*)
+(storage:defconfig 'brightness 5)
+(storage:defconfig 'chill-factor 2)
 
 (defun current-animation ()
   *current-animation*)
@@ -60,7 +48,7 @@
     (dotimes (y 16)
       (setf (aref buffer (* (+ (* y 16) x 1) 4)) (+ #x80 brightness)))))
 
-(defun make-frame-buffer (&key (brightness *brightness*))
+(defun make-frame-buffer (&key (brightness (storage:config 'brightness)))
   (check-type brightness (integer 0 7) "in the expected range for brightness")
   (let ((buffer (make-array (+ 4 (* 256 4) 256) :element-type '(unsigned-byte 8) :initial-element 0)))
     (setf (buffer-brightness buffer) brightness)
@@ -84,7 +72,7 @@
 
 (defun make-led-images (file)
   (loop with stream = (skippy:load-data-stream file)
-        with frame-buffer = (make-frame-buffer :brightness *brightness*)
+        with frame-buffer = (make-frame-buffer :brightness (storage:config 'brightness))
         with images = (skippy:images stream)
         with color-table = (skippy:color-table stream)
         for i from 0 below (length images)
@@ -110,7 +98,7 @@
                                10
                                (skippy:delay-time image))
                            100)
-                        *chill-factor*)
+                        (storage:config 'chill-factor))
                      write-duration)))
       (when (plusp delay)
         (sleep delay)))))
@@ -130,7 +118,7 @@
   (let ((output (open *leds-device* :direction :output
                                     :if-exists :append
                                     :element-type '(unsigned-byte 8)))
-        (brightness *brightness*))
+        (brightness (storage:config 'brightness)))
     (blank output)
     (loop
       (when-let (message (messaging:try-receive))
@@ -143,9 +131,9 @@
            (blank output))))
       (cond
         (*current-animation*
-         (unless (= brightness *brightness*)
+         (unless (= brightness (storage:config 'brightness))
            ;; Execute brightness change, if any.
-           (setf brightness *brightness*)
+           (setf brightness (storage:config 'brightness))
            (loop for image across (images *current-animation*)
                  do (setf (buffer-brightness (led-frame image)) brightness)))
          (display-frame output (next-image *current-animation*)))
@@ -159,5 +147,4 @@
              (not (ccl:process-exhausted-p *frame-thrower-thread*)))
     (error "frame thrower already running"))
   (cl-log:log-message :info "Starting frame-thrower agent")
-  (messaging:make-agent :display 'display-loop
-                        :parent ccl:*current-process*))
+  (messaging:make-agent :display 'display-loop))

@@ -176,7 +176,7 @@
               :data-slider-min "1"
               :data-slider-max "7"
               :data-slider-step "1"
-              :data-slider-value (format nil "~A" (display:brightness))))
+              :data-slider-value (format nil "~A" (storage:config 'display:brightness))))
      (:princ "&nbsp;&nbsp;&nbsp;")
      (:label "Bright")))
    (:fieldset
@@ -190,7 +190,7 @@
               :data-slider-min "0"
               :data-slider-max "5"
               :data-slider-step "0.1"
-              :data-slider-value (format nil "~G" (display:chill-factor))))
+              :data-slider-value (format nil "~G" (storage:config 'display:chill-factor))))
      (:princ "&nbsp;&nbsp;&nbsp;")
      (:label "Amphetamin")))))
 
@@ -275,11 +275,11 @@
 (hunchentoot:define-easy-handler (chill :uri "/chill") ((factor :parameter-type 'parse-float))
   (when (eq (hunchentoot:request-method*) :post)
     (check-type factor (float 0.0 5.0))
-    (setf (display:chill-factor) factor))
-  (format nil "chill factor ~A" (display:chill-factor)))
+    (setf (storage:config 'display:chill-factor) factor))
+  (format nil "chill factor ~A" (storage:config 'display:chill-factor)))
 
 (hunchentoot:define-easy-handler (brightness :uri "/brightness") ((level :parameter-type 'integer))
   (when (eq (hunchentoot:request-method*) :post)
     (check-type level (integer 0 7))
-    (setf (display:brightness) level))
-  (format nil "brightness level ~A" (display:brightness)))
+    (setf (storage:config 'display:brightness) level))
+  (format nil "brightness level ~A" (storage:config 'display:brightness)))

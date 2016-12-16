@@ -17,11 +17,20 @@
            #:args
            #:kill
            #:kill-all
-           #:make-agent))
+           #:make-agent
+           #:agent))
 
 (in-package :messaging)
 
 (defvar *agent-registry* (make-hash-table :test #'equal))
+
+(defvar *registry-lock* (ccl:make-lock "agent registry lock"))
+
+(defun register-agent (agent name)
+  (ccl:with-lock-grabbed (*registry-lock*)
+    (when (gethash name *agent-registry*)
+      (error 'duplicate-process-name :name name :format-arguments (list name)))
+    (setf (gethash name *agent-registry*) agent)))
 
 (defclass agent (ccl:process)
   ((mailbox :initform (safe-queue:make-mailbox)
@@ -40,10 +49,7 @@
   (:default-initargs :format-control "Duplicate process name: ~A"))
 
 (defmethod initialize-instance :before ((agent agent) &key name)
-  ;; FIXME: race condition if two processes with the same name are generated at the sime time
-  (when (gethash name *agent-registry*)
-    (error 'duplicate-process-name :name name :format-arguments (list name)))
-  (setf (gethash name *agent-registry*) agent))
+  (register-agent agent name))
 
 (defclass message ()
   ((from :initform ccl:*current-process*
@@ -65,7 +71,12 @@
     (safe-queue:enqueue (make-instance 'message
                                        :code 'exit
                                        :args (list reason data))
-                         (mailbox (parent ccl:*current-process*)))))
+                        (mailbox (parent ccl:*current-process*)))))
+
+(defun agent ()
+  (unless (typep ccl:*current-process* 'agent)
+    (error "current process ~S is not an agent" ccl:*current-process*))
+  ccl:*current-process*)
 
 (defun run-agent (function)
   (lambda ()
@@ -83,7 +94,10 @@
              (maybe-notify-parent 'condition e)))
       (remhash (ccl:process-name ccl:*current-process*) *agent-registry*))))
 
-(defun make-agent (name function &key (class 'agent) parent)
+(defun make-agent (name function &key (class 'agent) (parent (messaging:agent)))
+  (when (and parent
+             (not (typep parent 'agent)))
+    (error ":PARENT must be an AGENT, but it is a ~S" (type-of parent)))
   (ccl:process-run-function (list :name name
                                   :class class
                                   :initargs (list :parent parent))
@@ -134,7 +148,10 @@
                          (lambda ()
                            (throw 'exit 'killed))))
 
+(defun agentp (thing)
+  (typep thing 'agent))
+
 (defun kill-all ()
-  (dolist (process (ccl:all-processes))
-    (when (typep process 'agent)
-      (kill (ccl:process-name process)))))
+  (dolist (process (remove-if-not #'agentp (ccl:all-processes)))
+    (kill (ccl:process-name process))))
+
