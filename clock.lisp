@@ -23,13 +23,10 @@
       ((< seconds 46) (list (- 15 (- seconds 30)) 15))
       (t (list 0 (- 15 (- seconds 45)))))))
 
-(defun render-time (digits-file output-file hours minutes seconds)
-  (let* ((input-stream (skippy:load-data-stream digits-file))
-         (digits-image (aref (skippy:images input-stream) 0))
-         (output-image (skippy:make-image :width 16
-                                          :height 16
-                                          :color-table (skippy:copy-color-table (skippy:color-table input-stream))))
-         (stream (skippy:make-data-stream :width 16 :height 16)))
+(defun render-time (digits-image color-table hours minutes seconds)
+  (let ((output-image (skippy:make-image :width 16
+                                         :height 16
+                                         :color-table color-table)))
     (when (> hours 9)
       (render-digit digits-image output-image 0 (floor hours 10)))
     (render-digit digits-image output-image 1 (mod hours 10))
@@ -38,5 +35,22 @@
     (destructuring-bind (x y) (second-positon seconds)
       (setf (skippy:pixel-ref output-image x y)
             (skippy:pixel-ref digits-image x (+ y 176))))
-    (skippy:add-image output-image stream)
-    (skippy:output-data-stream stream output-file)))
+    (display:image-to-leds output-image color-table)))
+
+(defparameter *digits-file* "digits.gif")
+
+(defun get-current-time ()
+  (multiple-value-bind (seconds minutes hours) (decode-universal-time (get-universal-time))
+    (list hours minutes seconds)))
+
+(defun clock ()
+  (let* ((input-stream (skippy:load-data-stream *digits-file*))
+         (digits-image (aref (skippy:images input-stream) 0))
+         (color-table (skippy:copy-color-table (skippy:color-table input-stream)))
+         previous-time)
+    (loop
+      (let ((current-time (get-current-time)))
+        (unless (equal current-time previous-time)
+          (messaging:send :display :set-frame-buffer (apply 'render-time digits-image color-table current-time))
+          (setf previous-time current-time))
+        (sleep 0.1)))))

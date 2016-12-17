@@ -20,6 +20,7 @@
                (:file "storage")
                (:file "events")
                (:file "display")
+               (:file "clock")
                (:file "scripter")
                (:file "handlers")
                (:file "webserver")

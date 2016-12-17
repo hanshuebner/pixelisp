@@ -7,7 +7,8 @@
            #:load-gif
            #:name #:images
            #:brightness
-           #:chill-factor))
+           #:chill-factor
+           #:image-to-leds))
 
 (in-package :display)
 
@@ -54,7 +55,7 @@
     (setf (buffer-brightness buffer) brightness)
     buffer))
 
-(defun image-to-leds (color-table frame-buffer image)
+(defun image-to-leds (image color-table &key (frame-buffer (make-frame-buffer)))
   (loop for image-x from 0 below (min (skippy:width image) 16)
         do (loop for image-y from 0 below (min (skippy:height image) 16)
                  for fb-x* = (+ (skippy:left-position image) image-x)
@@ -77,7 +78,7 @@
         with color-table = (skippy:color-table stream)
         for i from 0 below (length images)
         for image = (aref images i)
-        do (setf frame-buffer (image-to-leds color-table frame-buffer image)
+        do (setf frame-buffer (image-to-leds image color-table :frame-buffer frame-buffer)
                  (aref images i) (change-class image 'led-image
                                                :led-frame (copy-sequence 'vector frame-buffer)))
         finally (return images)))
@@ -108,6 +109,10 @@
         *current-animation* animation)
   (events:publish :animation-loaded (name animation)))
 
+(defun set-current-frame-buffer (frame-buffer)
+  (setf *current-animation* nil)
+  (write-sequence frame-buffer output))
+
 (defun blank (output)
   (setf *current-animation* nil)
   (write-sequence (make-frame-buffer :brightness 0) output))
@@ -127,6 +132,8 @@
            (return))
           (:set-animation
            (apply #'set-current-animation (messaging:args message)))
+          (:set-frame-buffer
+           (apply #'set-current-frame-buffer (messaging:args message)))
           (:blank
            (blank output))))
       (cond
