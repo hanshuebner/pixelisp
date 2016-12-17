@@ -2,7 +2,9 @@
 
 (defpackage :logging
   (:use :cl :alexandria)
-  (:export #:start))
+  (:export #:start
+           #:last-messages
+           #:format-log-timestamp))
 
 (in-package :logging)
 
@@ -14,12 +16,12 @@
                                 (local-time:universal-to-timestamp (cl-log:timestamp-universal-time timestamp))
                                 :format '(:year "-" (:month 2) "-" (:day 2) " " (:hour 2) ":" (:min 2) ":" (:sec 2))))
 
-(defmethod cl-log:format-message ((self formatted-message))
+(defmethod cl-log:format-message ((message formatted-message))
     (format nil "~A: ~A ~?~&"
-            (format-log-timestamp (cl-log:message-timestamp self))
-            (cl-log:message-category self)
-            (cl-log:message-description self)
-            (cl-log:message-arguments self)))
+            (format-log-timestamp (cl-log:message-timestamp message))
+            (cl-log:message-category message)
+            (cl-log:message-description message)
+            (cl-log:message-arguments message)))
 
 (defun start ()
   (setf (cl-log:log-manager)
@@ -27,6 +29,9 @@
   (cl-log:start-messenger 'cl-log:text-stream-messenger
                           :name :console
                           :stream *standard-output*)
+  (cl-log:start-messenger 'cl-log:ring-messenger
+                          :name :log-ring
+                          :length 100)
   (let ((stream (open "game-frame.log"
                       :direction :output
                       :element-type :default
@@ -36,3 +41,6 @@
     (cl-log:start-messenger 'cl-log:text-stream-messenger
                             :name :logfile
                             :stream stream)))
+
+(defun last-messages ()
+  (cl-log:ring-messenger-messages (cl-log:find-messenger :log-ring)))

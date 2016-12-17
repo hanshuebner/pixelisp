@@ -21,3 +21,21 @@ body {
     width: 10em;
     text-align: right
 }
+
+.table th, .table td { 
+    border-top: none !important;
+}
+
+.table th {
+    border-bottom: solid black 1px;
+}
+
+.log-category-info {
+    color: green;
+}
+.log-category-warning {
+    color: orange;
+}
+.log-category-error {
+    color: red;
+}

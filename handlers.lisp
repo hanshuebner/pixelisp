@@ -56,10 +56,10 @@
           (when (probe-file (make-pathname :name stylesheet
                                            :type "css"
                                            :defaults (merge-pathnames #P"css/" *html-directory*)))
-            (html ((:link :rel "stylesheet" :href (str "css/" stylesheet ".css")))))))
+            (html ((:link :rel "stylesheet" :href (str "/css/" stylesheet ".css")))))))
        (:body
         ((:nav :class "navbar navbar-inverse navbar-fixed-top")
-         ((:div :class "container")
+         ((:div :class "container-fluid")
           ((:div :class "navbar-header")
            ((:button :type "button"
                      :class "navbar-toggle collapsed"
@@ -83,18 +83,27 @@
                    (html ((:li :class "active") ((:a :href ,uri) (:princ title)))))
 
                   (t
-                   (html (:li ((:a :href uri*) (:princ title))))))))))))
+                   (html (:li ((:a :href uri*) (:princ title)))))))))
+           ((:ul :class "nav navbar-nav navbar-right")
+            ((:li :class "dropdown")
+             ((:a :class "dropdown-toggle" :id "system-menu-drop" :data-toggle "dropdown" :aria-haspopup "true" :aria-expanded "false")
+              " System "
+              ((:span :class "caret")))
+             ((:ul :class "dropdown-menu" :aria-labelledby "system-menu-drop")
+              (:li ((:a :href "/system/processes") "Processes"))
+              (:li ((:a :href "/system/log") "Log"))))))))
         ((:div :class "container")
+
          ((:div :class "game-frame")
           ,@body))
-        ((:script :src "js/jquery.min.js"))
-        (:script "window.jQuery || document.write('<script src=\"js/jquery.min.js\"></script>')")
+        ((:script :src "/js/jquery.min.js"))
+        (:script "window.jQuery || document.write('<script src=\"/js/jquery.min.js\"></script>')")
         (dolist (js (list "bootstrap.min" "bootstrap-slider.min" "ie10-viewport-bug-workaround"
                           (string-downcase (symbol-name ,name))))
           (when (probe-file (make-pathname :name js
                                            :type "js"
                                            :defaults (merge-pathnames #P"js/" *html-directory*)))
-            (html ((:script :src (str "js/" js ".js"))))))))))
+            (html ((:script :src (str "/js/" js ".js"))))))))))
 
 (defmacro html (&body body)
   `(xhtml-generator:html
@@ -283,3 +292,83 @@
     (check-type level (integer 0 7))
     (setf (storage:config 'display:brightness) level))
   (format nil "brightness level ~A" (storage:config 'display:brightness)))
+
+(defun process-list-json (&key indent)
+  (yason:with-output-to-string* (:indent indent)
+    (yason:with-object ()
+      (yason:with-object-element ("processes")
+        (yason:with-array ()
+          (dolist (process (sort (ccl:all-processes) #'string-lessp :key #'ccl:process-name))
+            (yason:with-object ()
+              (yason:encode-object-elements
+               "name" (string (ccl:process-name process))
+               "type" (string (type-of process))
+               "whostate" (ccl:process-whostate process)
+               "allocation-quantum" (ccl:process-allocation-quantum process)
+               "serial-number" (ccl:process-serial-number process)
+               "creation-time" (ccl:process-creation-time process)
+               "priority" (ccl:process-priority process)))))))))
+
+(defun process-monitor-handler (interval)
+  (assert (plusp interval))
+  (setf (hunchentoot:content-type*) "text/event-stream")
+  (cl-log:log-message :info "Process monitor client connected")
+  (let ((client (make-instance 'sse-client
+                               :stream (flexi-streams:make-flexi-stream (hunchentoot:send-headers)))))
+    (handler-case
+        (loop
+          (send-event client (make-instance 'sse-event
+                                            :event "process-list"
+                                            :data (process-list-json)))
+          (sleep interval))
+      (ccl:socket-error (e)
+        (declare (ignore e))
+        (cl-log:log-message :info "Process monitor client ~A disconnected" client)))))
+
+(hunchentoot:define-easy-handler (processes :uri "/processes") ((interval :parameter-type 'integer))
+  (if interval
+      (process-monitor-handler interval)
+      (progn
+        (setf (hunchentoot:content-type*) "application/json")
+        (process-list-json :indent t))))
+
+(hunchentoot:define-easy-handler (system-processes :uri "/system/processes") ()
+  (page ('system-processes "/system/processes" "System Processes")
+    ((:table :class "table")
+     (:tr
+      (:th "ID")
+      (:th "Name")
+      (:th "Type")
+      (:th "State")
+      (:th "Priority"))
+     (dolist (process (sort (ccl:all-processes) #'< :key #'ccl:process-serial-number))
+       (html
+         (:tr
+          (:td (:princ (ccl:process-serial-number process)))
+          (:td (:princ (ccl:process-name process)))
+          (:td (:princ (string (type-of process))))
+          (:td (:princ (string (ccl:process-whostate process))))
+          (:td (:princ (ccl:process-priority process)))))))))
+
+(defun format-log-timestamp (timestamp)
+  (local-time:format-timestring nil
+                                (local-time:universal-to-timestamp (cl-log:timestamp-universal-time timestamp))
+                                :format '((:hour 2) ":" (:min 2) ":" (:sec 2))))
+
+(hunchentoot:define-easy-handler (system-log :uri "/system/log") ()
+  (page ('system-log "/system/log" "System Log")
+    ((:table :class "table table-sm")
+     (:tr
+      (:th "Time")
+      (:th "Category")
+      (:th "Text"))
+     (dolist (message (reverse (logging:last-messages)))
+       (html
+         (:tr
+          (:td (:princ (format-log-timestamp (cl-log:message-timestamp message))))
+          ((:td :class (format nil "log-category-~(~A~)" (cl-log:message-category message)))
+           (:princ (string (cl-log:message-category message))))
+          (:td (:princ (apply 'format
+                              nil
+                              (cl-log:message-description message)
+                              (cl-log:message-arguments message))))))))))
