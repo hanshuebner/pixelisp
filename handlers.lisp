@@ -368,7 +368,7 @@
           (:td (:princ (format-log-timestamp (cl-log:message-timestamp message))))
           ((:td :class (format nil "log-category-~(~A~)" (cl-log:message-category message)))
            (:princ (string (cl-log:message-category message))))
-          (:td (:princ (apply 'format
-                              nil
-                              (cl-log:message-description message)
-                              (cl-log:message-arguments message))))))))))
+          (:td (:princ-safe (apply 'format
+                                   nil
+                                   (cl-log:message-description message)
+                                   (cl-log:message-arguments message))))))))))
