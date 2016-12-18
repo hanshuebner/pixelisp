@@ -86,7 +86,7 @@
                    (html (:li ((:a :href uri*) (:princ title)))))))))
            ((:ul :class "nav navbar-nav navbar-right")
             ((:li :class "dropdown")
-             ((:a :class "dropdown-toggle" :id "system-menu-drop" :data-toggle "dropdown" :aria-haspopup "true" :aria-expanded "false")
+             ((:a :href "#" :class "dropdown-toggle" :id "system-menu-drop" :data-toggle "dropdown" :aria-haspopup "true" :aria-expanded "false")
               " System "
               ((:span :class "caret")))
              ((:ul :class "dropdown-menu" :aria-labelledby "system-menu-drop")
