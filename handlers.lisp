@@ -50,7 +50,8 @@
         ((:meta :http-equiv "X-UA-Compatible" :content "IE=Edge"))
         ((:meta :name "Viewport" :content "width=device-width, initial-scale=1"))
         (:title ,title)
-        (dolist (stylesheet (list "bootstrap.min" "bootstrap-slider.min"
+        (dolist (stylesheet (list "jquery-ui.min" "jquery-ui.structure.min" "jquery-ui.theme.min"
+                                  "bootstrap.min" "bootstrap-slider.min"
                                   "ie10-viewport-bug-workaround" "styles"
                                   (string-downcase (symbol-name ,name))))
           (when (probe-file (make-pathname :name stylesheet
@@ -85,20 +86,24 @@
                   (t
                    (html (:li ((:a :href uri*) (:princ title)))))))))
            ((:ul :class "nav navbar-nav navbar-right")
-            ((:li :class "dropdown")
-             ((:a :href "#" :class "dropdown-toggle" :id "system-menu-drop" :data-toggle "dropdown" :aria-haspopup "true" :aria-expanded "false")
+            ((:li :class ,(format nil "dropdown~@[ ~A~]" (when (cl-ppcre:scan "^/system" uri) "active")))
+             ((:a :href "#" :class "dropdown-toggle" :id "system-menu-drop"
+                  :data-toggle "dropdown" :aria-haspopup "true" :aria-expanded "false")
               " System "
               ((:span :class "caret")))
              ((:ul :class "dropdown-menu" :aria-labelledby "system-menu-drop")
-              (:li ((:a :href "/system/processes") "Processes"))
-              (:li ((:a :href "/system/log") "Log"))))))))
+              ((:li :class ,(format nil "~:[~;active~]" (equal uri "/system/processes")))
+               ((:a :href "/system/processes") "Processes"))
+              ((:li :class ,(format nil "~:[~;active~]" (equal uri "/system/log")))
+               ((:a :href "/system/log") "Log"))))))))
         ((:div :class "container")
 
          ((:div :class "game-frame")
           ,@body))
         ((:script :src "/js/jquery.min.js"))
         (:script "window.jQuery || document.write('<script src=\"/js/jquery.min.js\"></script>')")
-        (dolist (js (list "bootstrap.min" "bootstrap-slider.min" "ie10-viewport-bug-workaround"
+        (dolist (js (list "jquery-ui.min" "bootstrap.min" "bootstrap-slider.min" "ie10-viewport-bug-workaround"
+                          "bootbox.min"
                           (string-downcase (symbol-name ,name))))
           (when (probe-file (make-pathname :name js
                                            :type "js"
@@ -118,17 +123,25 @@
       ((:div :id "current-image-name") (:princ (display:name current-animation))))))
 
 (define-main-page (gifs "GIFs" "/gifs")
-  (:form
+  ((:div :class "image-container palette")
+   (:div ((:div :class "title") "All"))
    (dolist (image (sort (directory (make-pathname :name :wild :type "gif"
                                                   :defaults *gifs-directory*))
                         'string-lessp
                         :key #'pathname-name))
-     (html ((:div :class "image-preview")
-            ((:input :type "checkbox"))
-            ((:img :src (format nil "/gif/~A" (file-namestring image))
+     (html ((:div :class "image available")
+            ((:div :class "overlay")
+             (:button
+              ((:img :class "delete"
+                     :src "/images/delete.png"
+                     :width 16 :height 16))))
+            ((:img :class "thumbnail"
+                   :src (format nil "/gif/~A" (file-namestring image))
                    :height 64
                    :title (pathname-name image)
-                   :data-image-name (pathname-name image))))))))
+                   :data-image-name (pathname-name image)))))))
+  ((:div :class "image-container user-image-container")
+   (:div ((:div :class "title") "Active"))))
 
 (defun import-gif (input-file output-file)
   (handler-case
