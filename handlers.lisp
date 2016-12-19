@@ -115,12 +115,15 @@
      ,@body))
 
 (define-main-page (home "Home" "/")
-  (when-let (current-animation (display:current-animation))
-    (html
-      ((:img :id "current-image"
-             :src (format nil "/gif/~A.gif" (display:name current-animation))
-             :height 512))
-      ((:div :id "current-image-name") (:princ (display:name current-animation))))))
+  ((:div :id "frame")
+   (dotimes (y 16)
+     (html (:div
+            (dotimes (x 16)
+              (html ((:div :class "pixel" :id (format nil "pixel-~D"
+                                                      (+ (* y 16)
+                                                         (if (evenp y)
+                                                             x
+                                                             (- 15 x))))) " "))))))))
 
 (define-main-page (gifs "GIFs" "/gifs")
   ((:div :class "image-container palette")
@@ -259,7 +262,6 @@
     (format stream "ID: ~A" (id client))))
 
 (defmethod send-event ((client sse-client) event)
-  (cl-log:log-message :info "Sending SSE event ~A to client ~A" event client)
   (ccl:with-lock-grabbed ((lock client))
     (write-string (event-string event) (stream client))
     (finish-output (stream client))))
@@ -270,8 +272,6 @@
                                :stream (flexi-streams:make-flexi-stream (hunchentoot:send-headers)))))
     (cl-log:log-message :info "Event client ~A connected" client)
     (events:subscribe (lambda (event)
-                        (cl-log:log-message :info "Forwarding event ~A to client ~A"
-                                            event client)
                         (send-event client (make-instance 'sse-event
                                                           :event (events:type event)
                                                           :data (events:data event)

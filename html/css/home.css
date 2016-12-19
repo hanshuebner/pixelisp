@@ -1,0 +1,17 @@
+#frame {
+    border: 8px solid black;
+    display: inline-block;
+}
+#frame div {
+    margin: 0px;
+    padding: 0px;
+    border: 0px;
+    height: 25px;
+}
+#frame .pixel {
+    display: inline-block;
+    border: 2px solid black;
+    width: 25px;
+    height: 25px;
+    background: #ddd;
+}
