@@ -28,10 +28,12 @@
   (messaging:make-agent :scripter
                         (lambda ()
                           (loop
+                            (cl-log:log-message :info "running animations")
                             (messaging:make-agent :app 'play-all)
                             (sleep 45)
                             (messaging:exit :agent-name :app)
                             (messaging:wait-for :code 'messaging:exit :from :app)
+                            (cl-log:log-message :info "running clock")
                             (messaging:make-agent :app 'clock:run)
                             (sleep 15)
                             (messaging:exit :agent-name :app)

@@ -109,7 +109,7 @@
         *current-animation* animation)
   (events:publish :animation-loaded (name animation)))
 
-(defun set-current-frame-buffer (frame-buffer)
+(defun set-current-frame-buffer (output frame-buffer)
   (setf *current-animation* nil)
   (write-sequence frame-buffer output))
 
@@ -133,7 +133,7 @@
           (:set-animation
            (apply #'set-current-animation (messaging:args message)))
           (:set-frame-buffer
-           (apply #'set-current-frame-buffer (messaging:args message)))
+           (apply #'set-current-frame-buffer output (messaging:args message)))
           (:blank
            (blank output))))
       (cond
