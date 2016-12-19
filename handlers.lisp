@@ -269,20 +269,25 @@
 (hunchentoot:define-easy-handler (events :uri "/events") ()
   (setf (hunchentoot:content-type*) "text/event-stream")
   (let ((client (make-instance 'sse-client
-                               :stream (flexi-streams:make-flexi-stream (hunchentoot:send-headers)))))
+                               :stream (flexi-streams:make-flexi-stream (hunchentoot:send-headers))))
+        (handler-process ccl:*current-process*))
     (cl-log:log-message :info "Event client ~A connected" client)
     (events:subscribe (lambda (event)
-                        (send-event client (make-instance 'sse-event
-                                                          :event (events:type event)
-                                                          :data (events:data event)
-                                                          :id (events:id event)))))
-    (handler-case
-        (loop
-          (send-event client (make-instance 'sse-idle-event))
-          (sleep 10))
-      (ccl:socket-error (e)
-        (declare (ignore e))
-        (cl-log:log-message :info "Event client ~A disconnected" client)))))
+                        (handler-case
+                            (send-event client (make-instance 'sse-event
+                                                              :event (events:type event)
+                                                              :data (events:data event)
+                                                              :id (events:id event)))
+                          ((or ccl:socket-error stream-error) (e)
+                            (ccl:process-interrupt handler-process (lambda () (throw 'disconnect e)))))))
+    (catch 'disconnect
+      (handler-case
+          (loop
+            (send-event client (make-instance 'sse-idle-event))
+            (sleep 10))
+        (ccl:socket-error (e)
+          (declare (ignore e)))))
+    (cl-log:log-message :info "Event client ~A disconnected" client)))
 
 (hunchentoot:define-easy-handler (load-gif :uri "/load-gif") (name)
   (messaging:send :display
