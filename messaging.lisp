@@ -64,7 +64,13 @@
   (print-unreadable-object (message stream :type t)
     (format stream "from: ~S: ~S~@[ ~S~]" (from message) (code message) (args message))))
 
-(defun maybe-notify-parent (reason data)
+(defun agent ()
+  (unless (typep ccl:*current-process* 'agent)
+    (error "current process ~S is not an agent" ccl:*current-process*))
+  ccl:*current-process*)
+
+(defun handle-agent-exit (reason data)
+  (remhash (ccl:process-name ccl:*current-process*) *agent-registry*)
   (when (and (typep ccl:*current-process* 'agent)
              (parent ccl:*current-process*))
     (safe-queue:enqueue (make-instance 'message
@@ -72,30 +78,21 @@
                                        :args (list reason data))
                         (mailbox (parent ccl:*current-process*)))))
 
-(defun agent ()
-  (unless (typep ccl:*current-process* 'agent)
-    (error "current process ~S is not an agent" ccl:*current-process*))
-  ccl:*current-process*)
-
 (defun run-agent (start-semaphore function)
-;; FIXME race conditions:
-;; try to start new process with same name before the old one deregisters (but after it has sent the exit message) -> duplicate process name
-;; probably more
   (lambda ()
-    (unwind-protect
-         (handler-case
-             (handler-bind
-                 ((error (lambda (e)
-                           (format t "~A~%~{~A~%~}" e (ccl:backtrace-as-list))))) (cl-log:log-message :info "agent ~A starting" (ccl:process-name ccl:*current-process*))
-               (maybe-notify-parent 'exit
-                                    (catch 'exit
-                                      (ccl:signal-semaphore start-semaphore)
-                                      (funcall function)))
-               (cl-log:log-message :info "agent ~A exiting normally" (ccl:process-name ccl:*current-process*)))
-           (condition (e)
-             (cl-log:log-message :info "agent ~A exiting with error: ~A" (ccl:process-name ccl:*current-process*) e)
-             (maybe-notify-parent 'condition e)))
-      (remhash (ccl:process-name ccl:*current-process*) *agent-registry*))))
+    (handler-case
+        (handler-bind
+            ((error (lambda (e)
+                      (cl-log:log-message :error "~A~%~{~A~%~}" e (ccl:backtrace-as-list)))))
+          (cl-log:log-message :info "agent ~A starting" (ccl:process-name ccl:*current-process*))
+          (handle-agent-exit 'exit
+                             (catch 'exit
+                               (ccl:signal-semaphore start-semaphore)
+                               (funcall function)))
+          (cl-log:log-message :info "agent ~A exiting normally" (ccl:process-name ccl:*current-process*)))
+      (condition (e)
+        (cl-log:log-message :info "agent ~A exiting with error: ~A" (ccl:process-name ccl:*current-process*) e)
+        (handle-agent-exit 'condition e)))))
 
 (defun make-agent (name function &key (class 'agent) (parent (messaging:agent)))
   (when (and parent
