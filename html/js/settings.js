@@ -1,13 +1,13 @@
 $(document).ready(function () {
     $('#chill-factor')
-        .slider({ reversed: true });
+        .bootstrapSlider({ reversed: true });
     $('#chill-factor')
         .on('slide', function (event) {
             $.post('/chill?factor=' + event.value);
         });
 
     $('#brightness')
-        .slider();
+        .bootstrapSlider();
     $('#brightness')
         .on('slide', function (event) {
             $.post('/brightness?level=' + event.value);
