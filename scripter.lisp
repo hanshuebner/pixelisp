@@ -20,7 +20,7 @@
             (error (e)
               (cl-log:log-message :error "Error loading gif ~A~%~A~%" gif e)
               (sleep .5))))
-        (sleep 30)
+        (sleep 15)
         (when (/= last-update (file-write-date #P"gifs/"))
           (return))))))
 
