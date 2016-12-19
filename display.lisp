@@ -12,6 +12,8 @@
 
 (in-package :display)
 
+(defparameter *leds-device* #-darwin "/dev/spidev0.0" #+darwin "/dev/null")
+
 (defvar *current-animation* nil)
 
 (storage:defconfig 'brightness 5)
@@ -120,8 +122,6 @@
 (defun blank (output)
   (setf *current-animation* nil)
   (write-frame (make-frame-buffer :brightness 0) output))
-
-(defparameter *leds-device* "/dev/spidev0.0")
 
 (defun display-loop ()
   (let ((output (open *leds-device* :direction :output
