@@ -1,7 +1,8 @@
 ;; -*- Lisp -*-
 
 (defpackage :clock
-  (:use :cl :alexandria))
+  (:use :cl :alexandria)
+  (:export #:run))
 
 (in-package :clock)
 
@@ -43,7 +44,7 @@
   (multiple-value-bind (seconds minutes hours) (decode-universal-time (get-universal-time))
     (list hours minutes seconds)))
 
-(defun clock ()
+(defun run ()
   (let* ((input-stream (skippy:load-data-stream *digits-file*))
          (digits-image (aref (skippy:images input-stream) 0))
          (color-table (skippy:copy-color-table (skippy:color-table input-stream)))
