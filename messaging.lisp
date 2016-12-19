@@ -78,6 +78,10 @@
   ccl:*current-process*)
 
 (defun run-agent (function)
+;; FIXME race conditions:
+;; parent tries to exit before child starts -> throw tag not found
+;; try to start new process with same name before the old one deregisters (but after it has sent the exit message) -> duplicate process name
+;; probably more
   (lambda ()
     (unwind-protect
          (handler-case
