@@ -77,9 +77,8 @@
     (error "current process ~S is not an agent" ccl:*current-process*))
   ccl:*current-process*)
 
-(defun run-agent (function)
+(defun run-agent (start-semaphore function)
 ;; FIXME race conditions:
-;; parent tries to exit before child starts -> throw tag not found
 ;; try to start new process with same name before the old one deregisters (but after it has sent the exit message) -> duplicate process name
 ;; probably more
   (lambda ()
@@ -88,9 +87,10 @@
              (handler-bind
                  ((error (lambda (e)
                            (format t "~A~%~{~A~%~}" e (ccl:backtrace-as-list))))) (cl-log:log-message :info "agent ~A starting" (ccl:process-name ccl:*current-process*))
-               (catch 'exit
-                 (funcall function))
-               (maybe-notify-parent 'ok nil)
+               (maybe-notify-parent 'exit
+                                    (catch 'exit
+                                      (ccl:signal-semaphore start-semaphore)
+                                      (funcall function)))
                (cl-log:log-message :info "agent ~A exiting normally" (ccl:process-name ccl:*current-process*)))
            (condition (e)
              (cl-log:log-message :info "agent ~A exiting with error: ~A" (ccl:process-name ccl:*current-process*) e)
@@ -101,10 +101,13 @@
   (when (and parent
              (not (typep parent 'agent)))
     (error ":PARENT must be an AGENT, but it is a ~S" (type-of parent)))
-  (ccl:process-run-function (list :name name
-                                  :class class
-                                  :initargs (list :parent parent))
-                            (run-agent function)))
+  (let ((start-semaphore (ccl:make-semaphore)))
+    (ccl:process-run-function (list :name name
+                                    :class class
+                                    :initargs (list :parent parent))
+                              (run-agent start-semaphore function))
+    (unless (ccl:timed-wait-on-semaphore start-semaphore 1)
+      (error "agent process did not signal coordination semaphore within one second, start failed"))))
 
 (define-condition agent-not-found (simple-error)
   ((name :initarg :name :reader name))
