@@ -2,7 +2,6 @@
 
 (defpackage :messaging
   (:use :cl :alexandria)
-  (:shadow #:sleep)
   (:export #:try-receive
            #:sleep
            #:send
@@ -63,7 +62,7 @@
 
 (defmethod print-object ((message message) stream)
   (print-unreadable-object (message stream :type t)
-    (format stream "~S~@[ ~S~]" (code message) (args message))))
+    (format stream "from: ~S: ~S~@[ ~S~]" (from message) (code message) (args message))))
 
 (defun maybe-notify-parent (reason data)
   (when (and (typep ccl:*current-process* 'agent)
@@ -123,18 +122,18 @@
 (defun try-receive ()
   (safe-queue:mailbox-receive-message-no-hang (mailbox ccl:*current-process*)))
 
-(defun wait-for (message &key from)
-  (cl-log:log-message :info "waiting for ~S ~@[ from ~S~]" message from)
-  (destructuring-bind (expected-code &rest expected-args) message
-    (loop
-      (let* ((received-message (receive))
-             (received-from (ccl:process-name (from received-message))))
-        (cl-log:log-message :info "received message ~S from ~S" received-message received-from)
-        (when (and (eql (or from received-from)
-                        received-from)
-                   (eql (code received-message) expected-code)
-                   (equal (args received-message) expected-args))
-          (return))))))
+(defun wait-for (&key from code)
+  (cl-log:log-message :info "waiting for~:[ any message~; ~:*~S~]~@[ from ~S~]" code from)
+  (loop
+    (let* ((received-message (receive))
+           (received-from (ccl:process-name (from received-message)))
+           (received-code (code received-message)))
+      (cl-log:log-message :info "received message ~S" received-message)
+      (when (and (or (null from)
+                     (eql from received-from))
+                 (or (null code)
+                     (eql code received-code)))
+        (return)))))
 
 (defun exit (&key reason agent-name)
   (if agent-name
