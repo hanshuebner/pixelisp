@@ -144,7 +144,7 @@
                    :title (pathname-name image)
                    :data-image-name (pathname-name image)))))))
   ((:div :class "image-container user-image-container")
-   (:div ((:div :class "title") "Active"))))
+   (:div ((:div :class "title") "Playlist"))))
 
 (defun import-gif (input-file output-file)
   (handler-case
