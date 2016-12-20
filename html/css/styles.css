@@ -4,6 +4,10 @@ body {
 .game-frame {
   padding: 40px 15px;
 }
+.power-icon {
+    width: 20px;
+    height: 20px;
+}
 
 .left-slider-label {
     display: inline-block;

@@ -23,5 +23,7 @@ $(document).ready(function () {
     var evtSource = new EventSource('/events');
     evtSource.addEventListener('frame', displayFrame);
     evtSource.onmessage = function (event) { console.log('untyped event received: ', event); };
+
+    $('.power-icon').on('click', function () { $.get('/pause') });
 });
 

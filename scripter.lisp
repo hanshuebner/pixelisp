@@ -2,7 +2,8 @@
 
 (defpackage :scripter
   (:use :cl :alexandria)
-  (:export #:start))
+  (:export #:start
+           #:pause))
 
 (in-package :scripter)
 
@@ -27,14 +28,30 @@
 (defun start ()
   (messaging:make-agent :scripter
                         (lambda ()
-                          (loop
-                             (cl-log:log-message :info "running animations")
-                             (messaging:make-agent :app 'play-all)
-                             (sleep 45)
-                             (messaging:exit :agent-name :app)
-                             (messaging:wait-for :code 'messaging:exit :from :app)
-                             (cl-log:log-message :info "running clock")
-                             (messaging:make-agent :app 'clock:run)
-                             (sleep 15)
-                             (messaging:exit :agent-name :app)
-                             (messaging:wait-for :code 'messaging:exit :from :app)))))
+                          (let (pausedp)
+                            (loop
+                              (catch 'pause
+                                (cond
+                                  (pausedp
+                                   (handler-case
+                                       (messaging:exit :agent-name :app)
+                                     (messaging:agent-not-found (e)
+                                       (declare (ignore e))))
+                                   (messaging:send :display :blank)
+                                   (loop (sleep 1)))
+                                  (t
+                                   (cl-log:log-message :info "running animations")
+                                   (messaging:make-agent :app 'play-all)
+                                   (sleep 45)
+                                   (messaging:exit :agent-name :app)
+                                   (messaging:wait-for :code 'messaging:exit :from :app)
+                                   (cl-log:log-message :info "running clock")
+                                   (messaging:make-agent :app 'clock:run)
+                                   (sleep 15)
+                                   (messaging:exit :agent-name :app)
+                                   (messaging:wait-for :code 'messaging:exit :from :app))))
+                              (setf pausedp (not pausedp)))))))
+
+(defun pause ()
+  (ccl:process-interrupt (messaging:agent-named :scripter)
+                         (lambda () (throw 'pause nil))))

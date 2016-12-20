@@ -17,7 +17,9 @@
            #:kill
            #:kill-all
            #:make-agent
-           #:agent))
+           #:agent
+           #:agent-named
+           #:agent-not-found))
 
 (in-package :messaging)
 

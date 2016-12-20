@@ -95,7 +95,8 @@
               ((:li :class ,(format nil "~:[~;active~]" (equal uri "/system/processes")))
                ((:a :href "/system/processes") "Processes"))
               ((:li :class ,(format nil "~:[~;active~]" (equal uri "/system/log")))
-               ((:a :href "/system/log") "Log"))))))))
+               ((:a :href "/system/log") "Log"))))
+            (:li ((:a :href "#") ((:img :class "power-icon" :src "/images/power.png"))))))))
         ((:div :class "container")
 
          ((:div :class "game-frame")
@@ -390,3 +391,6 @@
                                    nil
                                    (cl-log:message-description message)
                                    (cl-log:message-arguments message))))))))))
+
+(hunchentoot:define-easy-handler (pause :uri "/pause") ()
+  (scripter:pause))
