@@ -95,7 +95,7 @@
 
 (defun write-frame (frame output)
   (write-sequence frame output)
-  (events:publish "frame" (time (format nil "~{~2,'0X~}" (coerce frame 'list)))))
+  (events:publish "frame" (format nil "~{~2,'0X~}" (coerce frame 'list))))
 
 (defun display-frame (output image)
   (let ((start-time (get-internal-real-time)))
