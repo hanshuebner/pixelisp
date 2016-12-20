@@ -10,7 +10,7 @@ function displayFrame(e)
     for (i = 0; i < 256; i++) {
         // The first 4 bytes (8 hex digits) are the start bytes, then
         // each pixel is 8 digits long.  The first two digits for each
-        // pixelare the synchronization bits + brightness.  Data is
+        // pixel are the synchronization bits + brightness.  Data is
         // coming as BGR, so we need to reverse the order to yield a
         // CSS color.
         base = 8 + i * 8 + 2;
