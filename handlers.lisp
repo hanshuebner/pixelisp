@@ -104,7 +104,7 @@
         ((:script :src "/js/jquery.min.js"))
         (:script "window.jQuery || document.write('<script src=\"/js/jquery.min.js\"></script>')")
         (dolist (js (list "jquery-ui.min" "bootstrap.min" "bootstrap-slider.min" "ie10-viewport-bug-workaround"
-                          "bootbox.min"
+                          "bootbox.min" "all"
                           (string-downcase (symbol-name ,name))))
           (when (probe-file (make-pathname :name js
                                            :type "js"
