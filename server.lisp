@@ -7,7 +7,9 @@
 
 (in-package :server)
 
-(defun start (&key (port 80))
+(defparameter *default-http-port* #+darwin 8899 #-darwin 80)
+
+(defun start (&key (port *default-http-port*))
   (logging:start)
   (messaging:make-agent :main
                         (lambda ()
