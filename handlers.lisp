@@ -42,78 +42,83 @@
        (page (',name ,uri ,title)
          ,@body))))
 
-(defmacro page ((name uri title) &body body)
-  `(with-output-to-string (*html-output*)
-     (with-html5 (*html-output*)
-       (:head
-        ((:meta :charset "utf-8"))
-        ((:meta :http-equiv "X-UA-Compatible" :content "IE=Edge"))
-        ((:meta :name "Viewport" :content "width=device-width, initial-scale=1"))
-        (:title ,title)
-        (dolist (stylesheet (list "jquery-ui.min" "jquery-ui.structure.min" "jquery-ui.theme.min"
-                                  "bootstrap.min" "bootstrap-slider.min"
-                                  "ie10-viewport-bug-workaround" "styles"
-                                  (string-downcase (symbol-name ,name))))
-          (when (probe-file (make-pathname :name stylesheet
-                                           :type "css"
-                                           :defaults (merge-pathnames #P"css/" *html-directory*)))
-            (html ((:link :rel "stylesheet" :href (str "/css/" stylesheet ".css")))))))
-       (:body
-        ((:nav :class "navbar navbar-inverse navbar-fixed-top")
-         ((:div :class "container-fluid")
-          ((:div :class "navbar-header")
-           ((:button :type "button"
-                     :class "navbar-toggle collapsed"
-                     :data-toggle "collapse"
-                     :data-target "#navbar"
-                     :aria-expanded "false"
-                     :aria-controls "navbar")
-            ((:span :class "sr-only") "Toggle Navigation")
-            ((:span :class "icon-bar"))
-            ((:span :class "icon-bar"))
-            ((:span :class "icon-bar")))
-           ((:a :class "navbar-brand" :href "/") "Game Frame"))
-          ((:div :id "navbar" :class "collapse navbar-collapse")
-           ((:ul :class "nav navbar-nav")
-            (dolist (page *pages*)
-              (destructuring-bind (title uri*) (rest page)
-                (cond
-                  ((equal uri* "/") nil)
+(defun do-with-page (name uri title function)
+  (with-output-to-string (*html-output*)
+    (with-html5 (*html-output*)
+      (:head
+       ((:meta :charset "utf-8"))
+       ((:meta :http-equiv "X-UA-Compatible" :content "IE=Edge"))
+       ((:meta :name "Viewport" :content "width=device-width, initial-scale=1"))
+       (:title (:princ-safe title))
+       (dolist (stylesheet (list "jquery-ui.min" "jquery-ui.structure.min" "jquery-ui.theme.min"
+                                 "bootstrap.min" "bootstrap-slider.min"
+                                 "ie10-viewport-bug-workaround" "styles"
+                                 (string-downcase (symbol-name name))))
+         (when (probe-file (make-pathname :name stylesheet
+                                          :type "css"
+                                          :defaults (merge-pathnames #P"css/" *html-directory*)))
+           (html ((:link :rel "stylesheet" :href (str "/css/" stylesheet ".css")))))))
+      ((:body :class (format nil "~@[raw~]" (hunchentoot:parameter "raw")))
+       (if (hunchentoot:parameter "raw")
+           (funcall function)
+           (html
+             ((:nav :class "navbar navbar-inverse navbar-fixed-top")
+              ((:div :class "container-fluid")
+               ((:div :class "navbar-header")
+                ((:button :type "button"
+                          :class "navbar-toggle collapsed"
+                          :data-toggle "collapse"
+                          :data-target "#navbar"
+                          :aria-expanded "false"
+                          :aria-controls "navbar")
+                 ((:span :class "sr-only") "Toggle Navigation")
+                 ((:span :class "icon-bar"))
+                 ((:span :class "icon-bar"))
+                 ((:span :class "icon-bar")))
+                ((:a :class "navbar-brand" :href "/") "Game Frame"))
+               ((:div :id "navbar" :class "collapse navbar-collapse")
+                ((:ul :class "nav navbar-nav")
+                 (dolist (page *pages*)
+                   (destructuring-bind (title uri*) (rest page)
+                     (cond
+                       ((equal uri* "/") nil)
 
-                  ((equal uri* ,uri)
-                   (html ((:li :class "active") ((:a :href ,uri) (:princ title)))))
+                       ((equal uri* uri)
+                        (html ((:li :class "active") ((:a :href uri) (:princ title)))))
 
-                  (t
-                   (html (:li ((:a :href uri*) (:princ title)))))))))
-           ((:ul :class "nav navbar-nav navbar-right")
-            ((:li :class ,(format nil "dropdown~@[ ~A~]" (when (cl-ppcre:scan "^/system" uri) "active")))
-             ((:a :href "#" :class "dropdown-toggle" :id "system-menu-drop"
-                  :data-toggle "dropdown" :aria-haspopup "true" :aria-expanded "false")
-              " System "
-              ((:span :class "caret")))
-             ((:ul :class "dropdown-menu" :aria-labelledby "system-menu-drop")
-              ((:li :class ,(format nil "~:[~;active~]" (equal uri "/system/processes")))
-               ((:a :href "/system/processes") "Processes"))
-              ((:li :class ,(format nil "~:[~;active~]" (equal uri "/system/log")))
-               ((:a :href "/system/log") "Log"))))
-            (:li ((:a :href "#") ((:img :class "power-icon" :src "/images/power.png"))))))))
-        ((:div :class "container")
-
-         ((:div :class "game-frame")
-          ,@body))
-        ((:script :src "/js/jquery.min.js"))
-        (:script "window.jQuery || document.write('<script src=\"/js/jquery.min.js\"></script>')")
-        (dolist (js (list "jquery-ui.min" "bootstrap.min" "bootstrap-slider.min" "ie10-viewport-bug-workaround"
-                          "bootbox.min" "all"
-                          (string-downcase (symbol-name ,name))))
-          (when (probe-file (make-pathname :name js
-                                           :type "js"
-                                           :defaults (merge-pathnames #P"js/" *html-directory*)))
-            (html ((:script :src (str "/js/" js ".js"))))))))))
+                       (t
+                        (html (:li ((:a :href uri*) (:princ title)))))))))
+                ((:ul :class "nav navbar-nav navbar-right")
+                 ((:li :class (format nil "dropdown~@[ ~A~]" (when (cl-ppcre:scan "^/system" uri) "active")))
+                  ((:a :href "#" :class "dropdown-toggle" :id "system-menu-drop"
+                       :data-toggle "dropdown" :aria-haspopup "true" :aria-expanded "false")
+                   " System "
+                   ((:span :class "caret")))
+                  ((:ul :class "dropdown-menu" :aria-labelledby "system-menu-drop")
+                   ((:li :class (format nil "~:[~;active~]" (equal uri "/system/processes")))
+                    ((:a :href "/system/processes") "Processes"))
+                   ((:li :class (format nil "~:[~;active~]" (equal uri "/system/log")))
+                    ((:a :href "/system/log") "Log"))))
+                 (:li ((:a :href "#") ((:img :class "power-icon" :src "/images/power.png"))))))))
+             ((:div :class "container")
+              ((:div :class "game-frame")
+               (funcall function)))))
+       ((:script :src "/js/jquery.min.js"))
+       (:script "window.jQuery || document.write('<script src=\"/js/jquery.min.js\"></script>')")
+       (dolist (js (list "jquery-ui.min" "bootstrap.min" "bootstrap-slider.min" "ie10-viewport-bug-workaround"
+                         "bootbox.min" "all"
+                         (string-downcase (symbol-name name))))
+         (when (probe-file (make-pathname :name js
+                                          :type "js"
+                                          :defaults (merge-pathnames #P"js/" *html-directory*)))
+           (html ((:script :src (str "/js/" js ".js"))))))))))
 
 (defmacro html (&body body)
   `(xhtml-generator:html
      ,@body))
+
+(defmacro page ((name uri title) &body body)
+  `(do-with-page ,name ,uri ,title (lambda () (html ,@body))))
 
 (define-main-page (home "Home" "/")
   ((:div :id "frame")
