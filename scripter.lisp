@@ -3,7 +3,7 @@
 (defpackage :scripter
   (:use :cl :alexandria)
   (:export #:start
-           #:pause))
+           #:power))
 
 (in-package :scripter)
 
@@ -25,33 +25,45 @@
         (when (/= last-update (file-write-date #P"gifs/"))
           (return))))))
 
+(defvar *power* t)
+
+(defun (setf power) (power)
+  (when (eq power :toggle)
+    (setf power (not *power*)))
+  (unless (eq power *power*)
+    (ccl:process-interrupt (messaging:agent-named :scripter)
+                           (lambda () (throw 'power power)))
+    (setf *power* power))
+  *power*)
+
+(defun power ()
+  *power*)
+
 (defun start ()
   (messaging:make-agent :scripter
                         (lambda ()
-                          (let (pausedp)
+                          (let ((power t))
                             (loop
-                              (catch 'pause
-                                (cond
-                                  (pausedp
-                                   (handler-case
-                                       (messaging:exit :agent-name :app)
-                                     (messaging:agent-not-found (e)
-                                       (declare (ignore e))))
-                                   (messaging:send :display :blank)
-                                   (loop (sleep 1)))
-                                  (t
-                                   (cl-log:log-message :info "running animations")
-                                   (messaging:make-agent :app 'play-all)
-                                   (sleep 45)
-                                   (messaging:exit :agent-name :app)
-                                   (messaging:wait-for :code 'messaging:exit :from :app)
-                                   (cl-log:log-message :info "running clock")
-                                   (messaging:make-agent :app 'clock:run)
-                                   (sleep 15)
-                                   (messaging:exit :agent-name :app)
-                                   (messaging:wait-for :code 'messaging:exit :from :app))))
-                              (setf pausedp (not pausedp)))))))
-
-(defun pause ()
-  (ccl:process-interrupt (messaging:agent-named :scripter)
-                         (lambda () (throw 'pause nil))))
+                              (setf power (catch 'power
+                                            (cond
+                                              (power
+                                               (cl-log:log-message :info "Power on")
+                                               (loop
+                                                 (cl-log:log-message :info "running animations")
+                                                 (messaging:make-agent :app 'play-all)
+                                                 (sleep 45)
+                                                 (messaging:exit :agent-name :app)
+                                                 (messaging:wait-for :code 'messaging:exit :from :app)
+                                                 (cl-log:log-message :info "running clock")
+                                                 (messaging:make-agent :app 'clock:run)
+                                                 (sleep 15)
+                                                 (messaging:exit :agent-name :app)
+                                                 (messaging:wait-for :code 'messaging:exit :from :app)))
+                                              (t
+                                               (handler-case
+                                                   (messaging:exit :agent-name :app)
+                                                 (messaging:agent-not-found (e)
+                                                   (declare (ignore e))))
+                                               (messaging:send :display :blank)
+                                               (cl-log:log-message :info "Power off")
+                                               (loop (sleep 1)))))))))))

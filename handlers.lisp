@@ -392,5 +392,13 @@
                                    (cl-log:message-description message)
                                    (cl-log:message-arguments message))))))))))
 
-(hunchentoot:define-easy-handler (pause :uri "/pause") ()
-  (scripter:pause))
+(hunchentoot:define-easy-handler (pause :uri "/power") (switch)
+  (when (eq (hunchentoot:request-method*) :post)
+    (setf (scripter:power)
+          (ecase (intern (string-upcase switch) :keyword)
+            (:on t)
+            (:off nil)
+            (:toggle :toggle))))
+  (if (scripter:power)
+      "on"
+      "off"))
