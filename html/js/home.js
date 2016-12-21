@@ -19,9 +19,18 @@ function displayFrame(e)
     }
 }
 
+function resize() {
+    var ledSize = Math.max(15, Math.min(25, ($(window).width() - 100) / 16));
+    $('#frame').css('width', (ledSize * 16 + 16) + 'px');
+    $('#frame div').css('height', ledSize + 'px');
+    $('#frame .pixel').css('width', ledSize + 'px');
+}
+
 $(document).ready(function () {
     var evtSource = new EventSource('/events');
     evtSource.addEventListener('frame', displayFrame);
     evtSource.onmessage = function (event) { console.log('untyped event received: ', event); };
+    $(window).resize(resize);
+    resize();
 });
 

@@ -1,6 +1,7 @@
 #frame {
     border: 8px solid black;
     display: inline-block;
+    width: 416px;
 }
 #frame div {
     margin: 0px;
