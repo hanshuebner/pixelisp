@@ -3,7 +3,7 @@
 Edit /boot/config.txt and uncomment
 
 dtparam=spi=on
-dtoverlay=lirc-rpi,gpio_in_pull=low
+dtoverlay=lirc-rpi,gpio_in_pull=up
 
 # Install prerequisite software
 

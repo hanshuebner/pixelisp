@@ -21,5 +21,5 @@
                             (unwind-protect
                                  (loop
                                    (when-let (key (parse-message (read-line socket)))
-                                     (messaging:send recipient :key-pressed key)))
+                                     (setf (scripter:power) :toggle)))
                               (close socket))))))

@@ -1,8 +1,11 @@
 body {
-  padding-top: 50px;
+    padding-top: 50px;
+}
+body.raw {
+    padding-top: 0px;
 }
 .game-frame {
-  padding: 40px 15px;
+    padding: 40px 15px;
 }
 .power-icon {
     width: 20px;

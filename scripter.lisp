@@ -39,6 +39,14 @@
 (defun power ()
   *power*)
 
+(defun exit-app ()
+  (handler-case
+      (progn
+        (messaging:exit :agent-name :app)
+        (messaging:wait-for :code 'messaging:exit :from :app))
+    (messaging:agent-not-found (e)
+      (declare (ignore e)))))
+
 (defun start ()
   (messaging:make-agent :scripter
                         (lambda ()
@@ -52,18 +60,13 @@
                                                  (cl-log:log-message :info "running animations")
                                                  (messaging:make-agent :app 'play-all)
                                                  (sleep 45)
-                                                 (messaging:exit :agent-name :app)
-                                                 (messaging:wait-for :code 'messaging:exit :from :app)
+                                                 (exit-app)
                                                  (cl-log:log-message :info "running clock")
                                                  (messaging:make-agent :app 'clock:run)
                                                  (sleep 15)
-                                                 (messaging:exit :agent-name :app)
-                                                 (messaging:wait-for :code 'messaging:exit :from :app)))
+                                                 (exit-app)))
                                               (t
-                                               (handler-case
-                                                   (messaging:exit :agent-name :app)
-                                                 (messaging:agent-not-found (e)
-                                                   (declare (ignore e))))
+                                               (exit-app)
                                                (messaging:send :display :blank)
                                                (cl-log:log-message :info "Power off")
                                                (loop (sleep 1)))))))))))
