@@ -42,6 +42,10 @@
        (page (',name ,uri ,title)
          ,@body))))
 
+(defmacro html (&body body)
+  `(xhtml-generator:html
+     ,@body))
+
 (defun do-with-page (name uri title function)
   (with-output-to-string (*html-output*)
     (with-html5 (*html-output*)
@@ -112,10 +116,6 @@
                                           :type "js"
                                           :defaults (merge-pathnames #P"js/" *html-directory*)))
            (html ((:script :src (str "/js/" js ".js"))))))))))
-
-(defmacro html (&body body)
-  `(xhtml-generator:html
-     ,@body))
 
 (defmacro page ((name uri title) &body body)
   `(do-with-page ,name ,uri ,title (lambda () (html ,@body))))
