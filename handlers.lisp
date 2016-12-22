@@ -279,13 +279,13 @@
         (handler-process ccl:*current-process*))
     (cl-log:log-message :info "Event client ~A connected" client)
     (events:subscribe (lambda (event)
-                        (handler-case
-                            (send-event client (make-instance 'sse-event
-                                                              :event (events:type event)
-                                                              :data (events:data event)
-                                                              :id (events:id event)))
-                          ((or ccl:socket-error stream-error) (e)
-                            (ccl:process-interrupt handler-process (lambda () (throw 'disconnect e)))))))
+                        (handler-bind
+                            (((or ccl:socket-error stream-error) (lambda (e)
+                                                                   (ccl:process-interrupt handler-process (lambda () (throw 'disconnect e))))))
+                          (send-event client (make-instance 'sse-event
+                                                            :event (events:type event)
+                                                            :data (events:data event)
+                                                            :id (events:id event))))))
     (catch 'disconnect
       (handler-case
           (loop
