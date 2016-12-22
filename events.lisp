@@ -33,4 +33,4 @@
         (error (e)
           (cl-log:log-message :info "Cannot deliver event to handler ~A, error ~A (unsubscribing)"
                               handler e)
-          (removef *subscribers* handler))))))
+          (removef handler *subscribers*))))))
