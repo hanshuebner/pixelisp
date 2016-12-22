@@ -53,7 +53,7 @@
        ((:meta :charset "utf-8"))
        ((:meta :http-equiv "X-UA-Compatible" :content "IE=Edge"))
        ((:meta :name "Viewport" :content "width=device-width, initial-scale=1"))
-       (:title (:princ-safe title))
+       (:title "GAME FRAME: "(:princ-safe title))
        (dolist (stylesheet (list "jquery-ui.min" "jquery-ui.structure.min" "jquery-ui.theme.min"
                                  "bootstrap.min" "bootstrap-slider.min"
                                  "ie10-viewport-bug-workaround" "styles"
