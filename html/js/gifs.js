@@ -47,7 +47,10 @@ function deleteAnimation(event, ui) {
         callback: function (result) {
             if (result) {
                 console.log('deleteAnimation', imageContainer);
-                imageContainer.remove();
+                $.post('/delete-gif?name=' + imageName)
+                    .done(function () {
+                        imageContainer.remove();
+                    });
             }
         }
     });

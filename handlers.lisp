@@ -412,3 +412,13 @@
   (when (eq (hunchentoot:request-method*) :post)
     (setf (clock:style) style))
   (princ-to-string (clock:style)))
+
+(hunchentoot:define-easy-handler (delete-gif :uri "/delete-gif") (name)
+  (cond
+    ((eq (hunchentoot:request-method*) :post)
+     (delete-file (make-pathname :name name
+                                 :type "gif"
+                                 :defaults *gifs-directory*))
+     (format t "image ~A deleted" name))
+    (t
+     (error "invalid request method, need POST"))))
