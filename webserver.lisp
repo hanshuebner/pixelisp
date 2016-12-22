@@ -21,7 +21,7 @@
                       (hunchentoot:content-length*)))
 
 (defmethod hunchentoot:acceptor-log-message ((acceptor acceptor) log-level format-string &rest format-arguments)
-  (cl-log:log-manager-message log-level "~?" format-string format-arguments))
+  (cl-log:log-message :error "~S ~?" log-levelformat-string format-arguments))
 
 (defun start (&key port)
   (cl-log:log-message :info "Starting hunchentoot on port ~A" port)
