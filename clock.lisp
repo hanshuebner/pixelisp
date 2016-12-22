@@ -2,7 +2,8 @@
 
 (defpackage :clock
   (:use :cl :alexandria)
-  (:export #:run))
+  (:export #:run
+           #:style))
 
 (in-package :clock)
 
@@ -38,20 +39,34 @@
             (skippy:pixel-ref digits-image x (+ y 176))))
     (display:image-to-leds output-image color-table)))
 
-(defparameter *digits-file* "digits.gif")
-
 (defun get-current-time ()
   (multiple-value-bind (seconds minutes hours) (decode-universal-time (get-universal-time))
     (list hours minutes seconds)))
 
+(storage:defconfig 'style 1)
+
+(defun style ()
+  (storage:config 'style))
+
+(defun (setf style) (style)
+  (check-type style (integer 1 5))
+  (setf (storage:config 'style) style))
+
 (defun run ()
-  (let* ((input-stream (skippy:load-data-stream *digits-file*))
-         (digits-image (aref (skippy:images input-stream) 0))
-         (color-table (skippy:copy-color-table (skippy:color-table input-stream)))
-         previous-time)
-    (loop
-      (let ((current-time (get-current-time)))
-        (unless (equal current-time previous-time)
-          (messaging:send :display :set-frame-buffer (apply 'render-time digits-image color-table current-time))
-          (setf previous-time current-time))
-        (sleep 0.1)))))
+  (loop
+    (tagbody
+     reload
+       (let* ((style (style))
+              (digits-file (format nil "digits_~A.gif" style))
+              (input-stream (skippy:load-data-stream digits-file))
+              (digits-image (aref (skippy:images input-stream) 0))
+              (color-table (skippy:copy-color-table (skippy:color-table input-stream)))
+              previous-time)
+         (loop
+           (let ((current-time (get-current-time)))
+             (unless (equal current-time previous-time)
+               (messaging:send :display :set-frame-buffer (apply 'render-time digits-image color-table current-time))
+               (setf previous-time current-time))
+             (unless (equal style (style))
+               (go reload))
+             (sleep 0.1)))))))

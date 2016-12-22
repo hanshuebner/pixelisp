@@ -407,3 +407,8 @@
   (if (scripter:power)
       "on"
       "off"))
+
+(hunchentoot:define-easy-handler (clock-style :uri "/clock-style") ((style :parameter-type 'integer))
+  (when (eq (hunchentoot:request-method*) :post)
+    (setf (clock:style) style))
+  (princ-to-string (clock:style)))
