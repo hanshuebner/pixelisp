@@ -14,7 +14,7 @@
     (when match
       (intern (ppcre:regex-replace-all "_" (svref registers 0) "-") :keyword))))
 
-(defun start (recipient)
+(defun start ()
   (messaging:make-agent :remote-control-reader
                         (lambda ()
                           (let ((socket (ccl:make-socket :remote-host "localhost" :remote-port *remote-control-port*)))

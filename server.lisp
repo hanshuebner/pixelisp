@@ -18,7 +18,7 @@
                           (when port
                             (webserver:start :port port))
                           (scripter:start)
-                          (remote-control:start :scripter)
+                          (remote-control:start)
                           (loop
                             (let ((message (messaging:receive)))
                               (cl-log:log-message :info "received message ~S" message))))
