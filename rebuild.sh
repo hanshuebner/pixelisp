@@ -1,8 +1,9 @@
 #!/bin/sh
 
-set -ex
-
 git pull
+killall run.sh
 killall game-frame
+
+set -ex
 make
 sudo reboot
