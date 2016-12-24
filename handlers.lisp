@@ -132,35 +132,6 @@
                                                              (- 15 x))))) " "))))))))
 
 (define-main-page (gifs "GIFs" "/gifs")
-  ((:div :class "image-container palette")
-   (:div ((:div :class "title") "All"))
-   (dolist (image (sort (directory (make-pathname :name :wild :type "gif"
-                                                  :defaults *gifs-directory*))
-                        'string-lessp
-                        :key #'pathname-name))
-     (html ((:div :class "image available")
-            ((:div :class "overlay")
-             (:button
-              ((:img :class "delete"
-                     :src "/images/delete.png"
-                     :width 16 :height 16))))
-            ((:img :class "thumbnail"
-                   :src (format nil "/gif/~A" (file-namestring image))
-                   :height 64
-                   :title (pathname-name image)
-                   :data-image-name (pathname-name image)))))))
-  ((:div :class "image-container user-image-container")
-   (:div ((:div :class "title") "Playlist"))))
-
-(defun import-gif (input-file output-file)
-  (handler-case
-      (utils:run-program "gifsicle" "--resize" "_x16"
-                         "-i" (namestring input-file)
-                         "-o" (namestring output-file))
-    (error (e)
-      (cl-log:log-message :error "Error importing ~A to ~A: ~A" input-file output-file e))))
-
-(define-main-page (upload "Upload" "/upload")
   ((:form :method "POST" :enctype "multipart/form-data")
    (when-let (file (hunchentoot:post-parameter "file"))
      (destructuring-bind (path file-name content-type) file
@@ -179,20 +150,46 @@
                    (import-gif path gif-pathname)
                    (if (probe-file gif-pathname)
                        (html ((:div :class "alert alert-success")
-                              "File has been imported")
-                         ((:img :id "current-image"
-                                :src (format nil "/gif/~A.gif" (pathname-name gif-pathname))
-                                :height 256)))
+                              "File has been imported"))
                        (html ((:div :class "alert alert-danger")
                               "File could not be imported (gifsicle failed?)"))))))))))
    (html
      (:fieldset
       (:legend "Upload a new GIF")
       ((:div :class "form-group")
-       ((:label :class "label") "Upload a GIF file")
-       ((:input :type "file" :name "file")))
-      ((:div :class "form-group")
-       ((:button :type "submit" :class "btn btn-primary") "Upload"))))))
+       ((:input :type "file" :id "file" :class "file-input" :name "file"))
+       ((:label :class "label" :for "file") "Upload a GIF file")))
+     ((:div :class "image-container palette")
+      (:div ((:div :class "title") "All"))
+      (dolist (image (sort (directory (make-pathname :name :wild :type "gif"
+                                                     :defaults *gifs-directory*))
+                           'string-lessp
+                           :key #'pathname-name))
+        (html ((:div :class "image available")
+               ((:div :class "overlay")
+                (:button
+                 ((:img :class "delete"
+                        :src "/images/delete.png"
+                        :width 16 :height 16))))
+               ((:img :class "thumbnail"
+                      :src (format nil "/gif/~A" (file-namestring image))
+                      :height 64
+                      :title (pathname-name image)
+                      :data-image-name (pathname-name image)))))))
+     ((:div :class "image-container user-image-container")
+      (:div ((:div :class "title") "Playlist"))))))
+
+(defun import-gif (input-file output-file)
+  (handler-case
+      (utils:run-program "gifsicle" "--resize" "_x16"
+                         "-i" (namestring input-file)
+                         "-o" (namestring output-file))
+    (error (e)
+      (cl-log:log-message :error "Error importing ~A to ~A: ~A" input-file output-file e))))
+
+(define-main-page (upload "Upload" "/upload")
+  (
+   ))
 
 (define-main-page (settings "Settings" "/settings")
   (:form
