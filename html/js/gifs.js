@@ -1,6 +1,6 @@
 function updateImageList(container) {
     var images = $(container)
-        .find('.thumbnail')
+        .find('.gf-thumbnail')
         .toArray()
         .map(function (img) {
             return $(img).attr('data-image-name');
@@ -29,8 +29,9 @@ function addImage(event, ui) {
 
 function deleteAnimation(event, ui) {
     console.log('deleteAnimation', this, event, ui);
+    event.preventDefault();
     var imageContainer = $(this).parent().parent().parent();
-    var imageName = imageContainer.find('.thumbnail').attr('data-image-name');
+    var imageName = imageContainer.find('.gf-thumbnail').attr('data-image-name');
     bootbox.confirm({
         title: 'Confirm Deletion',
         message: 'Do you want to delete animation ' + imageName + ' from the Game Frame?',
@@ -79,4 +80,16 @@ $(document).ready(function () {
         .on('sortstop', function (event, ui) {
             updateImageList(this);
         });
+    $('.file-input')
+        .on('change', function (event, ui) {
+            $('#upload-form')[0].submit();
+        });
+    if (document.querySelector('.popup-message')) {
+        $(document).idle({
+            onIdle: function () {
+                $('.popup-message').fadeOut(400, function () { $('.popup-message').remove() });
+            },
+            idle: 3000
+        });
+    }
 });

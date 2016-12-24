@@ -40,13 +40,15 @@
     right: 0px;
     z-index: 100;
 }
-.image .thumbnail {
+.gf-thumbnail {
     width: 64px;
     height: 64px;
     overflow: hidden;
     padding: 5px;
+    background: black;
     z-index: 10;
 }
+
 .file-input {
     width: 0.1px;
     height: 0.1px;
@@ -55,16 +57,7 @@
     position: absolute;
     z-index: -1;
 }
-.file-input + label {
-    font-size: 2em;
-    display: inline-block;
-    color: black;
-    cursor: pointer; /* "hand" cursor */
-    outline: 1px dotted #000;
-    outline: -webkit-focus-ring-color auto 5px;
-}
 
-.file-input:focus + label,
-.file-input + label:hover {
-    background-color: red;
+.popup-message .gf-thumbnail {
+    margin-right: 10px;
 }

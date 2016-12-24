@@ -110,7 +110,7 @@
        ((:script :src "/js/jquery.min.js"))
        (:script "window.jQuery || document.write('<script src=\"/js/jquery.min.js\"></script>')")
        (dolist (js (list "jquery-ui.min" "bootstrap.min" "bootstrap-slider.min" "ie10-viewport-bug-workaround"
-                         "bootbox.min" "all"
+                         "bootbox.min" "jquery.idle.min" "all"
                          (string-downcase (symbol-name name))))
          (when (probe-file (make-pathname :name js
                                           :type "js"
@@ -132,52 +132,58 @@
                                                              (- 15 x))))) " "))))))))
 
 (define-main-page (gifs "GIFs" "/gifs")
-  ((:form :method "POST" :enctype "multipart/form-data")
-   (when-let (file (hunchentoot:post-parameter "file"))
-     (destructuring-bind (path file-name content-type) file
-       (cl-log:log-message :info "File ~A uploaded to ~A, content-type ~A" file-name path content-type)
-       (html (:fieldset
-              (:legend "Upload result")
-              (cond
-                ((not (equal content-type "image/gif"))
-                 (html ((:div :class "alert alert-danger")
-                        "Invalid file type, only GIF is supported")))
-
-                (t
-                 (let ((gif-pathname (make-pathname :name (pathname-name file-name)
-                                                    :type "gif"
-                                                    :defaults *gifs-directory*)))
-                   (import-gif path gif-pathname)
-                   (if (probe-file gif-pathname)
-                       (html ((:div :class "alert alert-success")
-                              "File has been imported"))
-                       (html ((:div :class "alert alert-danger")
-                              "File could not be imported (gifsicle failed?)"))))))))))
+  ((:form :id "upload-form" :method "POST" :enctype "multipart/form-data")
    (html
      (:fieldset
-      (:legend "Upload a new GIF")
+      (:legend "Animation library")
       ((:div :class "form-group")
+       (when-let (file (hunchentoot:post-parameter "file"))
+         (destructuring-bind (path file-name content-type) file
+           (cl-log:log-message :info "File ~A uploaded to ~A, content-type ~A" file-name path content-type)
+           (html (cond
+                   ((not (equal content-type "image/gif"))
+                    (html ((:div :class "popup-message alert alert-danger")
+                           "Invalid file type, only GIF is supported")))
+
+                   (t
+                    (let* ((gif-pathname (make-pathname :name (pathname-name file-name)
+                                                        :type "gif"
+                                                        :defaults *gifs-directory*))
+                           (name (pathname-name gif-pathname)))
+                      (import-gif path gif-pathname)
+                      (if (probe-file gif-pathname)
+                          (html ((:div :class "popup-message alert alert-success")
+                                 ((:img :src (format nil "/gif/~A" (file-namestring gif-pathname))
+                                        :class "gf-thumbnail"
+                                        :height 54
+                                        :title name))
+                                 "Animation " (:princ-safe name) " has been imported"))
+                          (html ((:div :class "popup-message alert alert-danger")
+                                 "File could not be imported (gifsicle failed?)")))))))))
        ((:input :type "file" :id "file" :class "file-input" :name "file"))
-       ((:label :class "label" :for "file") "Upload a GIF file")))
-     ((:div :class "image-container palette")
-      (:div ((:div :class "title") "All"))
-      (dolist (image (sort (directory (make-pathname :name :wild :type "gif"
-                                                     :defaults *gifs-directory*))
-                           'string-lessp
-                           :key #'pathname-name))
-        (html ((:div :class "image available")
-               ((:div :class "overlay")
-                (:button
-                 ((:img :class "delete"
-                        :src "/images/delete.png"
-                        :width 16 :height 16))))
-               ((:img :class "thumbnail"
-                      :src (format nil "/gif/~A" (file-namestring image))
-                      :height 64
-                      :title (pathname-name image)
-                      :data-image-name (pathname-name image)))))))
-     ((:div :class "image-container user-image-container")
-      (:div ((:div :class "title") "Playlist"))))))
+       ((:label :class "btn btn-primary" :for "file")
+        "Upload new animation"))
+      ((:div :class "image-container palette")
+       (:div ((:div :class "title") "All"))
+       (dolist (image (sort (directory (make-pathname :name :wild :type "gif"
+                                                      :defaults *gifs-directory*))
+                            'string-lessp
+                            :key #'pathname-name))
+         (html ((:div :class "image available")
+                ((:div :class "overlay")
+                 (:button
+                  ((:img :class "delete"
+                         :src "/images/delete.png"
+                         :width 16 :height 16))))
+                ((:img :class "gf-thumbnail"
+                       :src (format nil "/gif/~A" (file-namestring image))
+                       :height 64
+                       :title (pathname-name image)
+                       :data-image-name (pathname-name image))))))))
+     (:fieldset
+      (:legend "Playlists")
+      ((:div :class "image-container user-image-container")
+       (:div ((:div :class "title") "Playlist")))))))
 
 (defun import-gif (input-file output-file)
   (handler-case
