@@ -32,7 +32,7 @@
                                                (cl-log:log-message :info "Power on")
                                                (loop
                                                  (cl-log:log-message :info "running animations")
-                                                 (app:start :playlist)
+                                                 (app:start :gallery)
                                                  (sleep 45)
                                                  (app:stop)
                                                  (cl-log:log-message :info "running clock")

@@ -21,7 +21,7 @@
                (:file "display")
                (:file "app")
                (:file "clock")
-               (:file "playlist")
+               (:file "gallery")
                (:file "scripter")
                (:file "remote-control")
                (:file "handlers")

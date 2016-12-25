@@ -19,7 +19,7 @@
                             (webserver:start :port port))
                           (remote-control:start)
                           (app:make :clock 'clock:run)
-                          (app:make :playlist 'playlist:play)
+                          (app:make :gallery 'gallery:play)
                           (scripter:start)
                           (loop
                             (let ((message (messaging:receive)))

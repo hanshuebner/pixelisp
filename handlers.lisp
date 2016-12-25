@@ -195,7 +195,7 @@
       (:legend "Playlist")
       ((:div :class "image-container")
        ((:div :class "user-image-container")
-        (dolist (image-name (playlist:images))
+        (dolist (image-name (gallery:images))
           (let ((pathname (make-pathname :name image-name :type "gif"
                                          :defaults *gifs-directory*)))
             (when (probe-file pathname)
@@ -434,6 +434,6 @@
   (when (eq (hunchentoot:request-method*) :post)
     (let ((body (hunchentoot:raw-post-data :force-text t)))
       (cl-log:log-message :debug "POST body: ~S" body)
-      (setf (playlist:images) (yason:parse body))))
+      (setf (gallery:images) (yason:parse body))))
   (setf (hunchentoot:content-type*) "application/json")
-  (yason:encode (playlist:images)))
+  (yason:encode (gallery:images)))

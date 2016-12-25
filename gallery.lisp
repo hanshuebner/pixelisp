@@ -1,11 +1,11 @@
 ;; -*- Lisp -*-
 
-(defpackage :playlist
+(defpackage :gallery
   (:use :cl :alexandria)
   (:export #:play
            #:images))
 
-(in-package :playlist)
+(in-package :gallery)
 
 (storage:defconfig 'playlist nil)
 
