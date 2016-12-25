@@ -17,11 +17,12 @@
                                 :format '(:year "-" (:month 2) "-" (:day 2) " " (:hour 2) ":" (:min 2) ":" (:sec 2))))
 
 (defmethod cl-log:format-message ((message formatted-message))
-    (format nil "~A: ~A ~?~&"
-            (format-log-timestamp (cl-log:message-timestamp message))
-            (cl-log:message-category message)
-            (cl-log:message-description message)
-            (cl-log:message-arguments message)))
+  (format nil "~A: ~A [~A] ~?~&"
+          (format-log-timestamp (cl-log:message-timestamp message))
+          (cl-log:message-category message)
+          (ccl:process-name ccl:*current-process*)
+          (cl-log:message-description message)
+          (cl-log:message-arguments message)))
 
 (defun start ()
   (setf (cl-log:log-manager)
