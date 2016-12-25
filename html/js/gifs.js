@@ -5,7 +5,8 @@ function updateImageList(container) {
         .map(function (img) {
             return $(img).attr('data-image-name');
         });
-    console.log('images', images);
+    console.log('images:', images);
+    $.post('/playlist', JSON.stringify(images), null, 'json');
 }
 
 function removeAnimationFromSequence(event, ui) {

@@ -7,24 +7,6 @@
 
 (in-package :scripter)
 
-(defun play-all ()
-  (setf *random-state* (make-random-state t))
-  (loop
-    (cl-log:log-message :info "Scanning GIF directory")
-    (let ((gifs (directory #P"gifs/*.gif"))
-          (last-update (file-write-date #P"gifs/")))
-      (loop
-        (let ((gif (alexandria:random-elt gifs)))
-          (cl-log:log-message :info "Loading ~A" gif)
-          (handler-case
-              (messaging:send :display :set-animation (display:load-gif gif))
-            (error (e)
-              (cl-log:log-message :error "Error loading gif ~A~%~A~%" gif e)
-              (sleep .5))))
-        (sleep 15)
-        (when (/= last-update (file-write-date #P"gifs/"))
-          (return))))))
-
 (defvar *power* t)
 
 (defun (setf power) (power)
@@ -39,14 +21,6 @@
 (defun power ()
   *power*)
 
-(defun exit-app ()
-  (handler-case
-      (progn
-        (messaging:exit :agent-name :app)
-        (messaging:wait-for :code 'messaging:exit :from :app))
-    (messaging:agent-not-found (e)
-      (declare (ignore e)))))
-
 (defun start ()
   (messaging:make-agent :scripter
                         (lambda ()
@@ -58,15 +32,15 @@
                                                (cl-log:log-message :info "Power on")
                                                (loop
                                                  (cl-log:log-message :info "running animations")
-                                                 (messaging:make-agent :app 'play-all)
+                                                 (app:start :playlist)
                                                  (sleep 45)
-                                                 (exit-app)
+                                                 (app:stop)
                                                  (cl-log:log-message :info "running clock")
-                                                 (messaging:make-agent :app 'clock:run)
+                                                 (app:start :clock)
                                                  (sleep 15)
-                                                 (exit-app)))
+                                                 (app:stop)))
                                               (t
-                                               (exit-app)
+                                               (app:stop)
                                                (messaging:send :display :blank)
                                                (cl-log:log-message :info "Power off")
                                                (loop (sleep 1)))))))))))

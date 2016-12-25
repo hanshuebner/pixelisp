@@ -131,6 +131,27 @@
                                                              x
                                                              (- 15 x))))) " "))))))))
 
+(defun import-gif (input-file output-file)
+  (handler-case
+      (utils:run-program "gifsicle" "--resize" "_x16"
+                         "-i" (namestring input-file)
+                         "-o" (namestring output-file))
+    (error (e)
+      (cl-log:log-message :error "Error importing ~A to ~A: ~A" input-file output-file e))))
+
+(defun render-image (image classes)
+  (html ((:div :class classes)
+         ((:div :class "overlay")
+          (:button
+           ((:img :class "delete"
+                  :src "/images/delete.png"
+                  :width 16 :height 16))))
+         ((:img :class "gf-thumbnail"
+                :src (format nil "/gif/~A" (file-namestring image))
+                :height 64
+                :title (pathname-name image)
+                :data-image-name (pathname-name image))))))
+
 (define-main-page (gifs "GIFs" "/gifs")
   ((:form :id "upload-form" :method "POST" :enctype "multipart/form-data")
    (html
@@ -169,33 +190,16 @@
                                                       :defaults *gifs-directory*))
                             'string-lessp
                             :key #'pathname-name))
-         (html ((:div :class "image available")
-                ((:div :class "overlay")
-                 (:button
-                  ((:img :class "delete"
-                         :src "/images/delete.png"
-                         :width 16 :height 16))))
-                ((:img :class "gf-thumbnail"
-                       :src (format nil "/gif/~A" (file-namestring image))
-                       :height 64
-                       :title (pathname-name image)
-                       :data-image-name (pathname-name image))))))))
+         (render-image image "image available"))))
      (:fieldset
-      (:legend "Playlists")
-      ((:div :class "image-container user-image-container")
-       (:div ((:div :class "title") "Playlist")))))))
-
-(defun import-gif (input-file output-file)
-  (handler-case
-      (utils:run-program "gifsicle" "--resize" "_x16"
-                         "-i" (namestring input-file)
-                         "-o" (namestring output-file))
-    (error (e)
-      (cl-log:log-message :error "Error importing ~A to ~A: ~A" input-file output-file e))))
-
-(define-main-page (upload "Upload" "/upload")
-  (
-   ))
+      (:legend "Playlist")
+      ((:div :class "image-container")
+       ((:div :class "user-image-container")
+        (dolist (image-name (playlist:images))
+          (let ((pathname (make-pathname :name image-name :type "gif"
+                                         :defaults *gifs-directory*)))
+            (when (probe-file pathname)
+              (render-image pathname "image"))))))))))
 
 (define-main-page (settings "Settings" "/settings")
   (:form
@@ -425,3 +429,11 @@
      (format t "image ~A deleted" name))
     (t
      (error "invalid request method, need POST"))))
+
+(hunchentoot:define-easy-handler (playlist :uri "/playlist") ()
+  (when (eq (hunchentoot:request-method*) :post)
+    (let ((body (hunchentoot:raw-post-data :force-text t)))
+      (cl-log:log-message :debug "POST body: ~S" body)
+      (setf (playlist:images) (yason:parse body))))
+  (setf (hunchentoot:content-type*) "application/json")
+  (yason:encode (playlist:images)))

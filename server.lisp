@@ -17,8 +17,10 @@
                           (display:start)
                           (when port
                             (webserver:start :port port))
-                          (scripter:start)
                           (remote-control:start)
+                          (app:make :clock 'clock:run)
+                          (app:make :playlist 'playlist:play)
+                          (scripter:start)
                           (loop
                             (let ((message (messaging:receive)))
                               (cl-log:log-message :info "received message ~S" message))))

@@ -10,6 +10,9 @@
     display: inline-block;
     padding: 2px;
 }
+.user-image-container {
+    min-height: 64px;
+}
 .hovering {
     background: #dfd;
 }
