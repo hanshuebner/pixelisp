@@ -48,7 +48,10 @@
 
 (defun read-storage (file)
   (flex:with-input-from-sequence (s (alexandria:read-file-into-byte-vector file))
-    (cl-store:restore s)))
+    (handler-bind
+        ((ccl::no-such-package (lambda (e)
+                                 (invoke-restart 'use-value (make-package (slot-value e 'package))))))
+      (cl-store:restore s))))
 
 (defun restore ()
   (when (probe-file *state-file*)
