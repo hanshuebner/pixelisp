@@ -1,11 +1,11 @@
 ;; -*- Lisp -*-
 
-(defpackage :scripter
+(defpackage :controller
   (:use :cl :alexandria)
   (:export #:start
            #:power))
 
-(in-package :scripter)
+(in-package :controller)
 
 (defvar *power* t)
 
@@ -13,7 +13,7 @@
   (when (eq power :toggle)
     (setf power (not *power*)))
   (unless (eq power *power*)
-    (ccl:process-interrupt (messaging:agent-named :scripter)
+    (ccl:process-interrupt (messaging:agent-named :controller)
                            (lambda () (throw 'power power)))
     (setf *power* power))
   *power*)
@@ -22,7 +22,7 @@
   *power*)
 
 (defun start ()
-  (messaging:make-agent :scripter
+  (messaging:make-agent :controller
                         (lambda ()
                           (let ((power t))
                             (loop

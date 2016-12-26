@@ -7,7 +7,9 @@
 
 (in-package :app)
 
-(define-condition app-event ()
+(defvar *current-app* nil)
+
+(define-condition app-event (condition)
   ())
 
 (define-condition start (app-event)
@@ -19,10 +21,10 @@
 (defun wait-for-start ()
   (cl-log:log-message :info "Waiting for start")
   (ccl:process-wait "Waiting for start"
-                    (lambda (name) (eql *current-app* name))
+                    (lambda (name)
+                      (eql *current-app* name))
                     (ccl:process-name ccl:*current-process*))
-  (cl-log:log-message :info "Starting")
-  (signal 'start))
+  (cl-log:log-message :info "Starting"))
 
 (defun wrap-app (function)
   (lambda ()
@@ -31,14 +33,14 @@
                  (declare (ignore e))
                  (cl-log:log-message :info "received STOP signal")
                  (setf *current-app* nil)
-                 (wait-for-start))))
+                 (wait-for-start)
+                 (when (find-restart 'start)
+                   (invoke-restart 'start)))))
       (wait-for-start)
       (funcall function))))
 
 (defun make (name handler)
   (messaging:make-agent name (wrap-app handler)))
-
-(defvar *current-app* nil)
 
 (defun start (app)
   (stop)

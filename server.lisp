@@ -19,7 +19,7 @@
                           (remote-control:start)
                           (app:make :clock 'clock:run)
                           (app:make :gallery 'gallery:play)
-                          (scripter:start)
+                          (controller:start)
                           (loop
                             (let ((message (messaging:receive)))
                               (cl-log:log-message :info "received message ~S" message))))

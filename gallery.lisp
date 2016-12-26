@@ -3,33 +3,79 @@
 (defpackage :gallery
   (:use :cl :alexandria)
   (:export #:play
-           #:images))
+           #:playlist
+           #:make-gif-pathname))
 
 (in-package :gallery)
 
+(defparameter *gifs-directory* #P"gifs/")
+
 (storage:defconfig 'playlist nil)
+(storage:defconfig 'animation-show-time 15)
 
-(defun play ()
-  (setf *random-state* (make-random-state t))
-  (loop
-    (cl-log:log-message :info "Scanning GIF directory")
-    (let ((gifs (directory #P"gifs/*.gif"))
-          (last-update (file-write-date #P"gifs/")))
-      (loop
-        (let ((gif (alexandria:random-elt gifs)))
-          (cl-log:log-message :info "Loading ~A" gif)
-          (handler-case
-              (messaging:send :display :set-animation (display:load-gif gif))
-            (error (e)
-              (cl-log:log-message :error "Error loading gif ~A~%~A~%" gif e)
-              (sleep .5))))
-        (sleep 15)
-        (when (/= last-update (file-write-date #P"gifs/"))
-          (return))))))
-
-(defun images ()
+(defun playlist ()
   (storage:config 'playlist))
 
-(defun (setf images) (new)
+(defun (setf playlist) (new)
   (setf (storage:config 'playlist) new)
   new)
+
+(defun set-animation (file)
+  (cl-log:log-message :info "Loading ~A" file)
+  (handler-case
+      (messaging:send :display :set-animation (display:load-gif file))
+    (error (e)
+      (cl-log:log-message :error "Error loading animation ~A~%~A~%" file e)
+      (sleep .5))))
+
+(defun make-gif-pathname (name)
+  (make-pathname :name name
+                 :defaults (make-pathname :type (and name "gif")
+                                          :defaults *gifs-directory*)))
+
+(defclass playlist ()
+  ((animation-files :initform nil :reader animation-files)))
+
+(defgeneric changedp (playlist))
+
+(defmethod initialize-instance :after ((playlist playlist) &key)
+  (cl-log:log-message :info "playing ~A with ~D animations" (type-of playlist) (length (animation-files playlist))))
+
+(defclass all-animations-playlist (playlist)
+  ((last-update :reader last-update :initform (file-write-date (make-gif-pathname nil)))))
+
+(defmethod initialize-instance :before ((playlist all-animations-playlist) &key)
+  (let ((*random-state* (make-random-state t)))
+    (setf (slot-value playlist 'animation-files) (alexandria:shuffle (directory #P"gifs/*.gif")))))
+
+(defmethod changedp ((playlist all-animations-playlist))
+  (/= (last-update playlist) (file-write-date (make-gif-pathname nil))))
+
+(defclass user-playlist (playlist)
+  ((animation-names :reader animation-names)))
+
+(defmethod initialize-instance :before ((playlist user-playlist) &key)
+  (with-slots (animation-names animation-files) playlist
+    (setf animation-names (playlist)
+          animation-files (mapcar #'make-gif-pathname animation-names))))
+
+(defmethod changedp ((playlist user-playlist))
+  (not (equal (animation-names playlist) (playlist))))
+
+(defun playlist-class ()
+  (if (playlist)
+      'user-playlist
+      'all-animations-playlist))
+
+(defun play ()
+  (loop
+    (with-simple-restart (app:start "Fresh start")
+      (sleep 1)
+      (loop with playlist = (make-instance (playlist-class))
+            do (loop for file in (animation-files playlist)
+                     do (when (or (not (typep playlist (playlist-class)))
+                                  (changedp playlist))
+                          (invoke-restart 'app:start))
+                        (with-simple-restart (app:start "Resume playing")
+                          (set-animation file)
+                          (sleep (storage:config 'animation-show-time))))))))

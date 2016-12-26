@@ -23,7 +23,7 @@
                                 (unwind-protect
                                      (loop
                                        (when-let (key (parse-message (read-line socket)))
-                                         (setf (scripter:power) :toggle)))
+                                         (setf (controller:power) :toggle)))
                                   (close socket)))
                             (ccl:socket-creation-error (e)
                               (if (eql (ccl:socket-creation-error-identifier e) :connection-refused)

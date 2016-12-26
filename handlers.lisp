@@ -6,10 +6,9 @@
 (in-package :handlers)
 
 (defparameter *html-directory* #P"html/")
-(defparameter *gifs-directory* #P"gifs/")
 
 (defvar *gif-folder-dispatcher* (hunchentoot:create-folder-dispatcher-and-handler "/gif/"
-                                                                                  *gifs-directory*))
+                                                                                  (gallery:make-gif-pathname nil)))
 
 (pushnew *gif-folder-dispatcher* hunchentoot:*dispatch-table*)
 
@@ -142,9 +141,8 @@
 (defun render-image (image classes)
   (html ((:div :class classes)
          ((:div :class "overlay")
-          (:button
-           ((:img :class "delete"
-                  :src "/images/delete.png"
+          ((:button :class "delete")
+           ((:img :src "/images/delete.png"
                   :width 16 :height 16))))
          ((:img :class "gf-thumbnail"
                 :src (format nil "/gif/~A" (file-namestring image))
@@ -167,9 +165,7 @@
                            "Invalid file type, only GIF is supported")))
 
                    (t
-                    (let* ((gif-pathname (make-pathname :name (pathname-name file-name)
-                                                        :type "gif"
-                                                        :defaults *gifs-directory*))
+                    (let* ((gif-pathname (gallery:make-gif-pathname (pathname-name file-name)))
                            (name (pathname-name gif-pathname)))
                       (import-gif path gif-pathname)
                       (if (probe-file gif-pathname)
@@ -186,8 +182,7 @@
         "Upload new animation"))
       ((:div :class "image-container palette")
        (:div ((:div :class "title") "All"))
-       (dolist (image (sort (directory (make-pathname :name :wild :type "gif"
-                                                      :defaults *gifs-directory*))
+       (dolist (image (sort (directory (gallery:make-gif-pathname :wild))
                             'string-lessp
                             :key #'pathname-name))
          (render-image image "image available"))))
@@ -195,9 +190,8 @@
       (:legend "Playlist")
       ((:div :class "image-container")
        ((:div :class "user-image-container")
-        (dolist (image-name (gallery:images))
-          (let ((pathname (make-pathname :name image-name :type "gif"
-                                         :defaults *gifs-directory*)))
+        (dolist (image-name (gallery:playlist))
+          (let ((pathname (gallery:make-gif-pathname image-name)))
             (when (probe-file pathname)
               (render-image pathname "image"))))))))))
 
@@ -304,9 +298,7 @@
 
 (hunchentoot:define-easy-handler (load-gif :uri "/load-gif") (name)
   (messaging:send :display
-                  :set-animation (display:load-gif (make-pathname :name name
-                                                                  :defaults (make-pathname :type "gif"
-                                                                                           :defaults *gifs-directory*))))
+                  :set-animation (display:load-gif (gallery:make-gif-pathname name)))
   "loaded")
 
 (defun parse-float (string)
@@ -406,12 +398,12 @@
 
 (hunchentoot:define-easy-handler (pause :uri "/power") (switch)
   (when (eq (hunchentoot:request-method*) :post)
-    (setf (scripter:power)
+    (setf (controller:power)
           (ecase (intern (string-upcase switch) :keyword)
             (:on t)
             (:off nil)
             (:toggle :toggle))))
-  (if (scripter:power)
+  (if (controller:power)
       "on"
       "off"))
 
@@ -423,9 +415,7 @@
 (hunchentoot:define-easy-handler (delete-gif :uri "/delete-gif") (name)
   (cond
     ((eq (hunchentoot:request-method*) :post)
-     (delete-file (make-pathname :name name
-                                 :type "gif"
-                                 :defaults *gifs-directory*))
+     (delete-file (gallery:make-gif-pathname name))
      (format t "image ~A deleted" name))
     (t
      (error "invalid request method, need POST"))))
@@ -434,6 +424,6 @@
   (when (eq (hunchentoot:request-method*) :post)
     (let ((body (hunchentoot:raw-post-data :force-text t)))
       (cl-log:log-message :debug "POST body: ~S" body)
-      (setf (gallery:images) (yason:parse body))))
+      (setf (gallery:playlist) (yason:parse body))))
   (setf (hunchentoot:content-type*) "application/json")
-  (yason:encode (gallery:images)))
+  (yason:encode (gallery:playlist)))

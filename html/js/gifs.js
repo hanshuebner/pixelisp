@@ -11,8 +11,10 @@ function updateImageList(container) {
 
 function removeAnimationFromSequence(event, ui) {
     console.log('removeAnimationFromSequence', this, event, ui);
+    event.preventDefault();
 
-    $(this).parent().parent().parent().remove();
+    $(this).parent().parent().remove();
+    updateImageList($('.user-image-container'));
 }
 
 function addImage(event, ui) {
@@ -31,7 +33,7 @@ function addImage(event, ui) {
 function deleteAnimation(event, ui) {
     console.log('deleteAnimation', this, event, ui);
     event.preventDefault();
-    var imageContainer = $(this).parent().parent().parent();
+    var imageContainer = $(this).parent().parent();
     var imageName = imageContainer.find('.gf-thumbnail').attr('data-image-name');
     bootbox.confirm({
         title: 'Confirm Deletion',
@@ -81,6 +83,8 @@ $(document).ready(function () {
         .on('sortstop', function (event, ui) {
             updateImageList(this);
         });
+    $('.user-image-container .delete')
+        .on('click', removeAnimationFromSequence);
     $('.file-input')
         .on('change', function (event, ui) {
             $('#upload-form')[0].submit();

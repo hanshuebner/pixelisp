@@ -22,7 +22,7 @@
                (:file "app")
                (:file "clock")
                (:file "gallery")
-               (:file "scripter")
+               (:file "controller")
                (:file "remote-control")
                (:file "handlers")
                (:file "webserver")
