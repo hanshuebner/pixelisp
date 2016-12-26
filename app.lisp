@@ -33,6 +33,18 @@
 
 (defvar *current-app* nil)
 
+(defun start (app)
+  (stop)
+  (handler-case
+      (progn
+        (cl-log:log-message :info "starting app ~S" app)
+        (messaging:send app 'start)
+        (messaging:wait-for :code 'started :from app)
+        (setf *current-app* app))
+    (error (e)
+      (cl-log:log-message :error "Cannot start app ~S: ~A" app e)
+      (stop))))
+
 (defun stop ()
   (handler-case
       (when *current-app*
@@ -45,15 +57,3 @@
     (messaging:agent-not-found (e)
       (declare (ignore e))))
   (setf *current-app* nil))
-
-(defun start (app)
-  (stop)
-  (handler-case
-      (progn
-        (cl-log:log-message :info "starting app ~S" app)
-        (messaging:send app 'start)
-        (messaging:wait-for :code 'started :from app)
-        (setf *current-app* app))
-    (error (e)
-      (cl-log:log-message :error "Cannot start app ~S: ~A" app e)
-      (stop))))
