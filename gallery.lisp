@@ -70,12 +70,18 @@
 (defun play ()
   (loop
     (with-simple-restart (app:start "Fresh start")
-      (sleep 1)
       (loop with playlist = (make-instance (playlist-class))
-            do (loop for file in (animation-files playlist)
-                     do (when (or (not (typep playlist (playlist-class)))
-                                  (changedp playlist))
-                          (invoke-restart 'app:start))
-                        (with-simple-restart (app:start "Resume playing")
-                          (set-animation file)
-                          (sleep (storage:config 'animation-show-time))))))))
+            do (loop with previous-file
+                     do (loop for file in (animation-files playlist)
+                              do (when (or (not (typep playlist (playlist-class)))
+                                           (changedp playlist))
+                                   (cl-log:log-message :debug "restarting because of playlist change")
+                                   (invoke-restart 'app:start))
+                                 (restart-case
+                                     (progn
+                                       (unless (equal previous-file file)
+                                         (set-animation file))
+                                       (setf previous-file file)
+                                       (sleep (storage:config 'animation-show-time)))
+                                   (app:start ()
+                                     (setf previous-file nil)))))))))
