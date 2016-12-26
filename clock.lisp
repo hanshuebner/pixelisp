@@ -7,6 +7,15 @@
 
 (in-package :clock)
 
+(storage:defconfig 'style 1)
+
+(defun style ()
+  (storage:config 'style))
+
+(defun (setf style) (style)
+  (check-type style (integer 1 5))
+  (setf (storage:config 'style) style))
+
 (defun render-digit (digits-image output-image position digit)
   (dotimes (y 16)
     (dotimes (x 3)
@@ -37,36 +46,52 @@
     (destructuring-bind (x y) (second-positon seconds)
       (setf (skippy:pixel-ref output-image x y)
             (skippy:pixel-ref digits-image x (+ y 176))))
+    output-image))
+
+(defun render-time-to-leds (digits-image color-table hours minutes seconds)
+  (let ((output-image (render-time digits-image color-table hours minutes seconds)))
     (display:image-to-leds output-image color-table)))
 
 (defun get-current-time ()
   (multiple-value-bind (seconds minutes hours) (decode-universal-time (get-universal-time))
     (list hours minutes seconds)))
 
-(storage:defconfig 'style 1)
-
-(defun style ()
-  (storage:config 'style))
-
-(defun (setf style) (style)
-  (check-type style (integer 1 5))
-  (setf (storage:config 'style) style))
+(defun read-digits (style)
+  (let* ((digits-file (format nil "digits_~A.gif" style))
+         (input-stream (skippy:load-data-stream digits-file))
+         (digits-image (aref (skippy:images input-stream) 0))
+         (color-table (skippy:copy-color-table (skippy:color-table input-stream))))
+    (values digits-image color-table)))
 
 (defun run ()
   (loop
     (tagbody
      reload
        (let* ((style (style))
-              (digits-file (format nil "digits_~A.gif" style))
-              (input-stream (skippy:load-data-stream digits-file))
-              (digits-image (aref (skippy:images input-stream) 0))
-              (color-table (skippy:copy-color-table (skippy:color-table input-stream)))
               previous-time)
-         (loop
-           (let ((current-time (get-current-time)))
-             (unless (equal current-time previous-time)
-               (messaging:send :display :set-frame-buffer (apply 'render-time digits-image color-table current-time))
-               (setf previous-time current-time))
-             (unless (equal style (style))
-               (go reload))
-             (sleep 0.1)))))))
+         (multiple-value-bind (digits-image color-table) (read-digits style)
+           (loop
+             (let ((current-time (get-current-time)))
+               (unless (equal current-time previous-time)
+                 (messaging:send :display
+                                 :set-frame-buffer
+                                 (apply #'render-time-to-leds digits-image color-table current-time))
+                 (setf previous-time current-time))
+               (unless (equal style (style))
+                 (go reload))
+               (sleep 0.1))))))))
+
+(hunchentoot:define-easy-handler (clock-style :uri "/clock/style") ((style :parameter-type 'integer))
+  (when (eq (hunchentoot:request-method*) :post)
+    (setf (style) style))
+  (princ-to-string (style)))
+
+(hunchentoot:define-easy-handler (clock-preview :uri "/clock/preview") ((style :parameter-type 'integer))
+  (check-type style (integer 1 5))
+  (multiple-value-bind (digits-image color-table) (read-digits style)
+    (let ((image (apply #'render-time digits-image color-table (get-current-time))))
+      (setf (hunchentoot:content-type*) "image/gif")
+      (let ((stream (skippy:make-data-stream :width 16 :height 16 :color-table color-table)))
+        (skippy:add-image image stream)
+        (flex:with-output-to-sequence (s)
+          (skippy:write-data-stream stream s))))))

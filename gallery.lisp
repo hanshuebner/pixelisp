@@ -4,7 +4,8 @@
   (:use :cl :alexandria)
   (:export #:play
            #:playlist
-           #:make-gif-pathname))
+           #:make-gif-pathname
+           #:import-gif))
 
 (in-package :gallery)
 
@@ -85,3 +86,32 @@
                                        (sleep (storage:config 'animation-show-time)))
                                    (app:start ()
                                      (setf previous-file nil)))))))))
+
+(defun import-gif (input-file output-file)
+  (handler-case
+      (utils:run-program "gifsicle" "--resize" "_x16"
+                         "-i" (namestring input-file)
+                         "-o" (namestring output-file))
+    (error (e)
+      (cl-log:log-message :error "Error importing ~A to ~A: ~A" input-file output-file e))))
+
+(hunchentoot:define-easy-handler (load-gif :uri "/load-gif") (name)
+  (messaging:send :display
+                  :set-animation (display:load-gif (make-gif-pathname name)))
+  "loaded")
+
+(hunchentoot:define-easy-handler (delete-gif :uri "/delete-gif") (name)
+  (cond
+    ((eq (hunchentoot:request-method*) :post)
+     (delete-file (make-gif-pathname name))
+     (format t "image ~A deleted" name))
+    (t
+     (error "invalid request method, need POST"))))
+
+(hunchentoot:define-easy-handler (gallery-playlist :uri "/gallery/playlist") ()
+  (when (eq (hunchentoot:request-method*) :post)
+    (let ((body (hunchentoot:raw-post-data :force-text t)))
+      (cl-log:log-message :debug "POST body: ~S" body)
+      (setf (playlist) (yason:parse body))))
+  (setf (hunchentoot:content-type*) "application/json")
+  (yason:encode (playlist)))

@@ -44,3 +44,14 @@
                                                (messaging:send :display :blank)
                                                (cl-log:log-message :info "Power off")
                                                (loop (sleep 1)))))))))))
+
+(hunchentoot:define-easy-handler (pause :uri "/power") (switch)
+  (when (eq (hunchentoot:request-method*) :post)
+    (setf (power)
+          (ecase (intern (string-upcase switch) :keyword)
+            (:on t)
+            (:off nil)
+            (:toggle :toggle))))
+  (if (power)
+      "on"
+      "off"))

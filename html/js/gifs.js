@@ -6,7 +6,7 @@ function updateImageList(container) {
             return $(img).attr('data-image-name');
         });
     console.log('images:', images);
-    $.post('/playlist', JSON.stringify(images), null, 'json');
+    $.post('/gallery/playlist', JSON.stringify(images), null, 'json');
 }
 
 function removeAnimationFromSequence(event, ui) {
@@ -97,4 +97,20 @@ $(document).ready(function () {
             idle: 3000
         });
     }
+
+    /* settings related */
+    
+    $('#chill-factor')
+        .bootstrapSlider({ reversed: true });
+    $('#chill-factor')
+        .on('slide', function (event) {
+            $.post('/chill?factor=' + event.value);
+        });
+
+    $('#brightness')
+        .bootstrapSlider();
+    $('#brightness')
+        .on('slide', function (event) {
+            $.post('/brightness?level=' + event.value);
+        });
 });

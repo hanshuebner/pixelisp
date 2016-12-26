@@ -159,3 +159,18 @@
     (error "frame thrower already running"))
   (cl-log:log-message :info "Starting frame-thrower agent")
   (messaging:make-agent :display 'display-loop))
+
+(defun parse-float (string)
+  (float (parse-number:parse-positive-real-number string)))
+
+(hunchentoot:define-easy-handler (chill :uri "/chill") ((factor :parameter-type 'parse-float))
+  (when (eq (hunchentoot:request-method*) :post)
+    (check-type factor (float 0.0 5.0))
+    (setf (storage:config 'chill-factor) factor))
+  (format nil "chill factor ~A" (storage:config 'chill-factor)))
+
+(hunchentoot:define-easy-handler (brightness :uri "/brightness") ((level :parameter-type 'integer))
+  (when (eq (hunchentoot:request-method*) :post)
+    (check-type level (integer 0 7))
+    (setf (storage:config 'brightness) level))
+  (format nil "brightness level ~A" (storage:config 'brightness)))

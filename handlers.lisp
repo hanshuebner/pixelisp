@@ -130,14 +130,6 @@
                                                              x
                                                              (- 15 x))))) " "))))))))
 
-(defun import-gif (input-file output-file)
-  (handler-case
-      (utils:run-program "gifsicle" "--resize" "_x16"
-                         "-i" (namestring input-file)
-                         "-o" (namestring output-file))
-    (error (e)
-      (cl-log:log-message :error "Error importing ~A to ~A: ~A" input-file output-file e))))
-
 (defun render-image (image classes)
   (html ((:div :class classes)
          ((:div :class "overlay")
@@ -167,7 +159,7 @@
                    (t
                     (let* ((gif-pathname (gallery:make-gif-pathname (pathname-name file-name)))
                            (name (pathname-name gif-pathname)))
-                      (import-gif path gif-pathname)
+                      (gallery:import-gif path gif-pathname)
                       (if (probe-file gif-pathname)
                           (html ((:div :class "popup-message alert alert-success")
                                  ((:img :src (format nil "/gif/~A" (file-namestring gif-pathname))
@@ -193,38 +185,35 @@
         (dolist (image-name (gallery:playlist))
           (let ((pathname (gallery:make-gif-pathname image-name)))
             (when (probe-file pathname)
-              (render-image pathname "image"))))))))))
+              (render-image pathname "image")))))))
+     (:fieldset
+      (:legend "Settings")
+      ((:div :class "form-group")
+       ((:label :class "left-slider-label") "Dark")
+       (:princ "&nbsp;&nbsp;&nbsp;")
+       ((:input :id "brightness"
+                :data-slider-id "brightness"
+                :type "text"
+                :data-slider-min "1"
+                :data-slider-max "7"
+                :data-slider-step "1"
+                :data-slider-value (format nil "~A" (storage:config 'display:brightness))))
+       (:princ "&nbsp;&nbsp;&nbsp;")
+       (:label "Bright"))
+      ((:div :class "form-group")
+       ((:label :class "left-slider-label") "Flunitrazepam")
+       (:princ "&nbsp;&nbsp;&nbsp;")
+       ((:input :id "chill-factor"
+                :data-slider-id "chill-factor"
+                :type "text"
+                :data-slider-min "0"
+                :data-slider-max "5"
+                :data-slider-step "0.1"
+                :data-slider-value (format nil "~G" (storage:config 'display:chill-factor))))
+       (:princ "&nbsp;&nbsp;&nbsp;")
+       (:label "Amphetamine"))))))
 
-(define-main-page (settings "Settings" "/settings")
-  (:form
-   (:fieldset
-    (:legend "Brightness")
-    ((:div :class "form-group")
-     ((:label :class "left-slider-label") "Dark")
-     (:princ "&nbsp;&nbsp;&nbsp;")
-     ((:input :id "brightness"
-              :data-slider-id "brightness"
-              :type "text"
-              :data-slider-min "1"
-              :data-slider-max "7"
-              :data-slider-step "1"
-              :data-slider-value (format nil "~A" (storage:config 'display:brightness))))
-     (:princ "&nbsp;&nbsp;&nbsp;")
-     (:label "Bright")))
-   (:fieldset
-    (:legend "Animation Speed")
-    ((:div :class "form-group")
-     ((:label :class "left-slider-label") "Rohypnol")
-     (:princ "&nbsp;&nbsp;&nbsp;")
-     ((:input :id "chill-factor"
-              :data-slider-id "chill-factor"
-              :type "text"
-              :data-slider-min "0"
-              :data-slider-max "5"
-              :data-slider-step "0.1"
-              :data-slider-value (format nil "~G" (storage:config 'display:chill-factor))))
-     (:princ "&nbsp;&nbsp;&nbsp;")
-     (:label "Amphetamin")))))
+
 
 (defclass sse-event ()
   ((event :initform nil :initarg :event :reader event)
@@ -295,26 +284,6 @@
         (ccl:socket-error (e)
           (declare (ignore e)))))
     (cl-log:log-message :info "Event client ~A disconnected" client)))
-
-(hunchentoot:define-easy-handler (load-gif :uri "/load-gif") (name)
-  (messaging:send :display
-                  :set-animation (display:load-gif (gallery:make-gif-pathname name)))
-  "loaded")
-
-(defun parse-float (string)
-  (float (parse-number:parse-positive-real-number string)))
-
-(hunchentoot:define-easy-handler (chill :uri "/chill") ((factor :parameter-type 'parse-float))
-  (when (eq (hunchentoot:request-method*) :post)
-    (check-type factor (float 0.0 5.0))
-    (setf (storage:config 'display:chill-factor) factor))
-  (format nil "chill factor ~A" (storage:config 'display:chill-factor)))
-
-(hunchentoot:define-easy-handler (brightness :uri "/brightness") ((level :parameter-type 'integer))
-  (when (eq (hunchentoot:request-method*) :post)
-    (check-type level (integer 0 7))
-    (setf (storage:config 'display:brightness) level))
-  (format nil "brightness level ~A" (storage:config 'display:brightness)))
 
 (defun process-list-json (&key indent)
   (yason:with-output-to-string* (:indent indent)
@@ -395,35 +364,3 @@
                                    nil
                                    (cl-log:message-description message)
                                    (cl-log:message-arguments message))))))))))
-
-(hunchentoot:define-easy-handler (pause :uri "/power") (switch)
-  (when (eq (hunchentoot:request-method*) :post)
-    (setf (controller:power)
-          (ecase (intern (string-upcase switch) :keyword)
-            (:on t)
-            (:off nil)
-            (:toggle :toggle))))
-  (if (controller:power)
-      "on"
-      "off"))
-
-(hunchentoot:define-easy-handler (clock-style :uri "/clock-style") ((style :parameter-type 'integer))
-  (when (eq (hunchentoot:request-method*) :post)
-    (setf (clock:style) style))
-  (princ-to-string (clock:style)))
-
-(hunchentoot:define-easy-handler (delete-gif :uri "/delete-gif") (name)
-  (cond
-    ((eq (hunchentoot:request-method*) :post)
-     (delete-file (gallery:make-gif-pathname name))
-     (format t "image ~A deleted" name))
-    (t
-     (error "invalid request method, need POST"))))
-
-(hunchentoot:define-easy-handler (playlist :uri "/playlist") ()
-  (when (eq (hunchentoot:request-method*) :post)
-    (let ((body (hunchentoot:raw-post-data :force-text t)))
-      (cl-log:log-message :debug "POST body: ~S" body)
-      (setf (gallery:playlist) (yason:parse body))))
-  (setf (hunchentoot:content-type*) "application/json")
-  (yason:encode (gallery:playlist)))
