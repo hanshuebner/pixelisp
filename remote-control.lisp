@@ -6,6 +6,7 @@
 
 (in-package :remote-control)
 
+(defparameter *remote-control-host* "localhost")
 (defparameter *remote-control-port* 2020)
 
 (defun parse-message (string)
@@ -17,9 +18,16 @@
 (defun start ()
   (messaging:make-agent :remote-control-reader
                         (lambda ()
-                          (let ((socket (ccl:make-socket :remote-host "localhost" :remote-port *remote-control-port*)))
-                            (unwind-protect
-                                 (loop
-                                   (when-let (key (parse-message (read-line socket)))
-                                     (setf (scripter:power) :toggle)))
-                              (close socket))))))
+                          (handler-case
+                              (let ((socket (ccl:make-socket :remote-host *remote-control-host* :remote-port *remote-control-port*)))
+                                (unwind-protect
+                                     (loop
+                                       (when-let (key (parse-message (read-line socket)))
+                                         (setf (scripter:power) :toggle)))
+                                  (close socket)))
+                            (ccl:socket-creation-error (e)
+                              (if (eql (ccl:socket-creation-error-identifier e) :connection-refused)
+                                  (cl-log:log-message :error "Connection to remote control server on ~A:~A refused"
+                                                      *remote-control-host* *remote-control-port*)
+                                  (cl-log:log-message :error "Unexpected error ~A while connecting to remote control server on ~A:~A"
+                                                      e *remote-control-host* *remote-control-port*)))))))
