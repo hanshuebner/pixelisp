@@ -1,0 +1,7 @@
+#clock-styles img {
+    border: 8px solid black;
+}
+
+#clock-styles label {
+    margin-left: 2em;
+}

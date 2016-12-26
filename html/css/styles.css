@@ -1,3 +1,6 @@
+img {
+    image-rendering: pixelated;
+}
 body {
     padding-top: 50px;
 }

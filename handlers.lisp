@@ -144,76 +144,94 @@
 
 (define-main-page (gifs "GIFs" "/gifs")
   ((:form :id "upload-form" :method "POST" :enctype "multipart/form-data")
-   (html
-     (:fieldset
-      (:legend "Animation library")
-      ((:div :class "form-group")
-       (when-let (file (hunchentoot:post-parameter "file"))
-         (destructuring-bind (path file-name content-type) file
-           (cl-log:log-message :info "File ~A uploaded to ~A, content-type ~A" file-name path content-type)
-           (html (cond
-                   ((not (equal content-type "image/gif"))
-                    (html ((:div :class "popup-message alert alert-danger")
-                           "Invalid file type, only GIF is supported")))
+   (:fieldset
+    (:legend "Animation library")
+    ((:div :class "form-group")
+     (when-let (file (hunchentoot:post-parameter "file"))
+       (destructuring-bind (path file-name content-type) file
+         (cl-log:log-message :info "File ~A uploaded to ~A, content-type ~A" file-name path content-type)
+         (html (cond
+                 ((not (equal content-type "image/gif"))
+                  (html ((:div :class "popup-message alert alert-danger")
+                         "Invalid file type, only GIF is supported")))
 
-                   (t
-                    (let* ((gif-pathname (gallery:make-gif-pathname (pathname-name file-name)))
-                           (name (pathname-name gif-pathname)))
-                      (gallery:import-gif path gif-pathname)
-                      (if (probe-file gif-pathname)
-                          (html ((:div :class "popup-message alert alert-success")
-                                 ((:img :src (format nil "/gif/~A" (file-namestring gif-pathname))
-                                        :class "gf-thumbnail"
-                                        :height 54
-                                        :title name))
-                                 "Animation " (:princ-safe name) " has been imported"))
-                          (html ((:div :class "popup-message alert alert-danger")
-                                 "File could not be imported (gifsicle failed?)")))))))))
-       ((:input :type "file" :id "file" :class "file-input" :name "file"))
-       ((:label :class "btn btn-primary" :for "file")
-        "Upload new animation"))
-      ((:div :class "image-container palette")
-       (:div ((:div :class "title") "All"))
-       (dolist (image (sort (directory (gallery:make-gif-pathname :wild))
-                            'string-lessp
-                            :key #'pathname-name))
-         (render-image image "image available"))))
-     (:fieldset
-      (:legend "Playlist")
-      ((:div :class "image-container")
-       ((:div :class "user-image-container")
-        (dolist (image-name (gallery:playlist))
-          (let ((pathname (gallery:make-gif-pathname image-name)))
-            (when (probe-file pathname)
-              (render-image pathname "image")))))))
-     (:fieldset
-      (:legend "Settings")
-      ((:div :class "form-group")
-       ((:label :class "left-slider-label") "Dark")
-       (:princ "&nbsp;&nbsp;&nbsp;")
-       ((:input :id "brightness"
-                :data-slider-id "brightness"
-                :type "text"
-                :data-slider-min "1"
-                :data-slider-max "7"
-                :data-slider-step "1"
-                :data-slider-value (format nil "~A" (storage:config 'display:brightness))))
-       (:princ "&nbsp;&nbsp;&nbsp;")
-       (:label "Bright"))
-      ((:div :class "form-group")
-       ((:label :class "left-slider-label") "Flunitrazepam")
-       (:princ "&nbsp;&nbsp;&nbsp;")
-       ((:input :id "chill-factor"
-                :data-slider-id "chill-factor"
-                :type "text"
-                :data-slider-min "0"
-                :data-slider-max "5"
-                :data-slider-step "0.1"
-                :data-slider-value (format nil "~G" (storage:config 'display:chill-factor))))
-       (:princ "&nbsp;&nbsp;&nbsp;")
-       (:label "Amphetamine"))))))
+                 (t
+                  (let* ((gif-pathname (gallery:make-gif-pathname (pathname-name file-name)))
+                         (name (pathname-name gif-pathname)))
+                    (gallery:import-gif path gif-pathname)
+                    (if (probe-file gif-pathname)
+                        (html ((:div :class "popup-message alert alert-success")
+                               ((:img :src (format nil "/gif/~A" (file-namestring gif-pathname))
+                                      :class "gf-thumbnail"
+                                      :height 54
+                                      :title name))
+                               "Animation " (:princ-safe name) " has been imported"))
+                        (html ((:div :class "popup-message alert alert-danger")
+                               "File could not be imported (gifsicle failed?)")))))))))
+     ((:input :type "file" :id "file" :class "file-input" :name "file"))
+     ((:label :class "btn btn-primary" :for "file")
+      "Upload new animation"))
+    ((:div :class "image-container palette")
+     (:div ((:div :class "title") "All"))
+     (dolist (image (sort (directory (gallery:make-gif-pathname :wild))
+                          'string-lessp
+                          :key #'pathname-name))
+       (render-image image "image available"))))
+   (:fieldset
+    (:legend "Playlist")
+    ((:div :class "image-container")
+     ((:div :class "user-image-container")
+      (dolist (image-name (gallery:playlist))
+        (let ((pathname (gallery:make-gif-pathname image-name)))
+          (when (probe-file pathname)
+            (render-image pathname "image")))))))
+   (:fieldset
+    (:legend "Settings")
+    ((:div :class "form-group")
+     ((:label :class "left-slider-label") "Dark")
+     (:princ "&nbsp;&nbsp;&nbsp;")
+     ((:input :id "brightness"
+              :data-slider-id "brightness"
+              :type "text"
+              :data-slider-min "1"
+              :data-slider-max "7"
+              :data-slider-step "1"
+              :data-slider-value (format nil "~A" (storage:config 'display:brightness))))
+     (:princ "&nbsp;&nbsp;&nbsp;")
+     (:label "Bright"))
+    ((:div :class "form-group")
+     ((:label :class "left-slider-label") "Flunitrazepam")
+     (:princ "&nbsp;&nbsp;&nbsp;")
+     ((:input :id "chill-factor"
+              :data-slider-id "chill-factor"
+              :type "text"
+              :data-slider-min "0"
+              :data-slider-max "5"
+              :data-slider-step "0.1"
+              :data-slider-value (format nil "~G" (storage:config 'display:chill-factor))))
+     (:princ "&nbsp;&nbsp;&nbsp;")
+     (:label "Amphetamine")))))
 
-
+(define-main-page (clock "Clock" "/clock")
+  ((:form :id "clock-form" :action "#")
+   (:fieldset
+    (:legend "Clock Style")
+    ((:div :class "form-group" :id "clock-styles")
+     ((:div :class "radio")
+      (dotimes (i 5)
+        (let ((style (1+ i)))
+          (html
+            (:label (if (= (clock:style) style)
+                        (html ((:input :type "radio"
+                                       :name "style"
+                                       :value style
+                                       :checked "checked")))
+                        (html ((:input :type "radio"
+                                       :name "style"
+                                       :value style))))
+                    ((:img :src (format nil "/clock/preview?style=~A" style)
+                           :width "128"
+                           :height "128")))))))))))
 
 (defclass sse-event ()
   ((event :initform nil :initarg :event :reader event)
