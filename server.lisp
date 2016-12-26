@@ -2,8 +2,7 @@
 
 (defpackage :server
   (:use :cl :alexandria)
-  (:export
-   #:start))
+  (:export #:start))
 
 (in-package :server)
 
@@ -11,7 +10,6 @@
 
 (defun start (&key (port *default-http-port*))
   (logging:start)
-  (storage::restore)                    ; work around strange condition binding issue
   (messaging:make-agent :main
                         (lambda ()
                           (storage:start)

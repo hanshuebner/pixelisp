@@ -46,12 +46,15 @@
                     output))
   (cl-log:log-message :info "Saved settings to ~A" (truename *state-file*)))
 
+(defmethod cl-store:backend-restore :around ((store cl-store:cl-store) (input t))
+  (handler-bind
+      ((ccl::no-such-package (lambda (e)
+                               (invoke-restart 'use-value (make-package (slot-value e 'package))))))
+    (call-next-method)))
+
 (defun read-storage (file)
   (flex:with-input-from-sequence (s (alexandria:read-file-into-byte-vector file))
-    (handler-bind
-        ((ccl::no-such-package (lambda (e)
-                                 (invoke-restart 'use-value (make-package (slot-value e 'package))))))
-      (cl-store:restore s))))
+    (cl-store:restore s)))
 
 (defun restore ()
   (when (probe-file *state-file*)
