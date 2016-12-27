@@ -2,7 +2,7 @@
 
 git pull
 killall run.sh
-killall game-frame
+killall pixelisp
 
 set -ex
 cd src; make

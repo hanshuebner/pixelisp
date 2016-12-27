@@ -66,7 +66,7 @@ $(document).ready(function () {
                                    $.get('/load-gif?name=' + $(this).attr('data-image-name'));
                                });
     $('.available').draggable({
-        containment: '.game-frame',
+        containment: '.pixelisp',
         cursor: 'move',
         helper: 'clone',
         revert: 'invalid'

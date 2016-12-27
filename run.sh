@@ -2,6 +2,6 @@
 
 while true
 do
-	./game-frame
+	./pixelisp
 	sleep 1
 done

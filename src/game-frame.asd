@@ -1,4 +1,4 @@
-(defsystem :game-frame
+(defsystem :pixelisp
   :depends-on (:alexandria
                :cl-log
                :cl-ppcre

@@ -104,7 +104,7 @@
                     ((:a :href "/system/log") "Log"))))
                  (:li ((:a :href "#") ((:img :class "power-icon" :src "/images/power.png"))))))))
              ((:div :class "container")
-              ((:div :class "game-frame")
+              ((:div :class "pixelisp")
                (funcall function)))))
        ((:script :src "/js/jquery.min.js"))
        (:script "window.jQuery || document.write('<script src=\"/js/jquery.min.js\"></script>')")

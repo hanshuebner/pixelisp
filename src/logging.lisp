@@ -33,7 +33,7 @@
   (cl-log:start-messenger 'cl-log:ring-messenger
                           :name :log-ring
                           :length 100)
-  (let ((stream (open #P"log/game-frame.log"
+  (let ((stream (open #P"log/pixelisp.log"
                       :direction :output
                       :element-type :default
                       :if-does-not-exist :create
