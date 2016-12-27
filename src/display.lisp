@@ -151,13 +151,8 @@
         (t
          (sleep .01))))))
 
-(defvar *frame-thrower-thread* nil)
-
 (defun start ()
-  (when (and *frame-thrower-thread*
-             (not (ccl:process-exhausted-p *frame-thrower-thread*)))
-    (error "frame thrower already running"))
-  (cl-log:log-message :info "Starting frame-thrower agent")
+  (cl-log:log-message :info "Starting display agent")
   (messaging:make-agent :display 'display-loop))
 
 (defun parse-float (string)
