@@ -1,6 +1,6 @@
 # Pixelisp: Raspberry Pi based Game Frame engine
 
-Pixelisp is alternative engine for the
+Pixelisp is alternative, [Raspberry Pi 3](https://www.raspberrypi.org/) based engine for the
 [LEDSEQ Game Frame](http://ledseq.com/product/game-frame/), which is a
 16x16 RGB matrix display in a nice, living room compatible housing.
 
