@@ -7,6 +7,8 @@
 
 (in-package :clock)
 
+(defparameter *lib-directory* #P"lib/clock/")
+
 (storage:defconfig 'style 1)
 
 (defun style ()
@@ -57,7 +59,9 @@
     (list hours minutes seconds)))
 
 (defun read-digits (style)
-  (let* ((digits-file (format nil "digits_~A.gif" style))
+  (let* ((digits-file (make-pathname :name (format nil "digits_~A" style)
+                                     :type "gif"
+                                     :defaults *lib-directory*))
          (input-stream (skippy:load-data-stream digits-file))
          (digits-image (aref (skippy:images input-stream) 0))
          (color-table (skippy:copy-color-table (skippy:color-table input-stream))))

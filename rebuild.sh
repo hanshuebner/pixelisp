@@ -5,5 +5,5 @@ killall run.sh
 killall game-frame
 
 set -ex
-make
+cd src; make
 sudo reboot
