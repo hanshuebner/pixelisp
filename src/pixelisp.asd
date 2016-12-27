@@ -14,10 +14,10 @@
                :yason)
   :serial t
   :components ((:file "utils")
+               (:file "events")
                (:file "logging")
                (:file "messaging")
                (:file "storage")
-               (:file "events")
                (:file "display")
                (:file "app")
                (:file "clock")
