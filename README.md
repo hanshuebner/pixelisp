@@ -16,6 +16,8 @@ Pixelisp is alternative engine for the
 * Brightness control
 * Animation playback speed control
 * Configurable clock style
+* Self-hosted, hack the running system
+* Completely written in Common Lisp, the programmable programming language
 
 ## Documentation
 
