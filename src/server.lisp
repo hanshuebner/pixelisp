@@ -24,6 +24,7 @@
                         (lambda ()
                           (storage:start)
                           (display:start)
+                          (web-frame:start)
                           (when port
                             (webserver:start :port port))
                           (remote-control:start)

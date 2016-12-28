@@ -24,6 +24,8 @@
                (:file "gallery")
                (:file "controller")
                (:file "remote-control")
+               (:file "sse")
+               (:file "web-frame")
                (:file "handlers")
                (:file "webserver")
                (:file "server")))

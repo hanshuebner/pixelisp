@@ -36,27 +36,28 @@
                   :initform most-positive-fixnum)))
 
 (defun file-size (filename)
-  (nth-value 2 (ccl::%stat (namestring filename))))
+  (nth-value 2 (ccl::%stat (namestring (truename filename)))))
 
 (defun reopen (messenger)
-  (let ((stream (open (filename messenger)
-                      :direction :output
-                      :element-type :default
-                      :if-does-not-exist :create
-                      :if-exists :append
-                      :sharing :lock
-                      :external-format (external-format messenger))))
-    (setf (slot-value messenger 'cl-log::stream) stream
-          (log-file-size messenger) (file-size (filename messenger)))))
+  (with-slots (cl-log::stream log-file-size filename) messenger
+    (when (slot-boundp messenger 'cl-log::stream)
+      (close cl-log::stream))
+    (setf cl-log::stream (open filename
+                               :direction :output
+                               :element-type :default
+                               :if-does-not-exist :create
+                               :if-exists :append
+                               :sharing :lock
+                               :external-format (external-format messenger))
+          log-file-size (file-size filename))))
 
 (defmethod initialize-instance :after ((messenger log-file-messenger) &key)
   (reopen messenger))
 
 (defmethod cl-log:messenger-send-message :before ((messenger log-file-messenger) (message t))
-  (let ((current-log-file-size (file-size (filename messenger))))
-    (when (or (null current-log-file-size)
-              (< current-log-file-size (log-file-size messenger)))
-      (reopen messenger))))
+  (when (< (or (file-size (filename messenger)) 0)
+           (log-file-size messenger))
+    (reopen messenger)))
 
 (defun start ()
   (setf (cl-log:log-manager)

@@ -241,76 +241,6 @@
                            :width "128"
                            :height "128")))))))))))
 
-(defclass sse-event ()
-  ((event :initform nil :initarg :event :reader event)
-   (data :initform nil :initarg :data :reader data)
-   (id :initform nil :initarg :id :reader id)
-   (retry :initform nil :initarg :retry :reader retry)))
-
-(defmethod print-object ((event sse-event) stream)
-  (print-unreadable-object (event stream :type t)
-    (format stream "EVENT: ~A DATA: ~S" (event event) (data event))))
-
-(defmethod event-string ((event sse-event))
-  (format nil
-          "~@[event: ~(~A~)~%~]~
-           ~:[:~;~:*data: ~A~]~%~
-           ~@[id: ~A~%~]~
-           ~@[retry: ~A~%~]~
-           ~%"
-          (event event)
-          (data event)
-          (id event)
-          (retry event)))
-
-(defclass sse-idle-event ()
-  ())
-
-(defmethod print-object ((event sse-idle-event) stream)
-  (print-unreadable-object (event stream :type t)))
-
-(defmethod event-string ((event sse-idle-event))
-  (format nil ": idle~%~%"))
-
-(defvar *client-id* 0)
-
-(defclass sse-client ()
-  ((stream :initarg :stream :reader stream)
-   (lock :initform (ccl:make-lock "event-stream-lock") :accessor lock)
-   (id :initform (ccl::atomic-incf *client-id*) :reader id)))
-
-(defmethod print-object ((client sse-client) stream)
-  (print-unreadable-object (client stream :type t)
-    (format stream "ID: ~A" (id client))))
-
-(defmethod send-event ((client sse-client) event)
-  (ccl:with-lock-grabbed ((lock client))
-    (write-string (event-string event) (stream client))
-    (finish-output (stream client))))
-
-(hunchentoot:define-easy-handler (events :uri "/events") ()
-  (setf (hunchentoot:content-type*) "text/event-stream")
-  (let ((client (make-instance 'sse-client
-                               :stream (flexi-streams:make-flexi-stream (hunchentoot:send-headers))))
-        (handler-process ccl:*current-process*))
-    (cl-log:log-message :info "Event client ~A connected" client)
-    (events:subscribe (lambda (event)
-                        (handler-bind
-                            (((or ccl:socket-error stream-error) (lambda (e)
-                                                                   (ccl:process-interrupt handler-process (lambda () (throw 'disconnect e))))))
-                          (send-event client (make-instance 'sse-event
-                                                            :event (events:type event)
-                                                            :data (events:data event)
-                                                            :id (events:id event))))))
-    (catch 'disconnect
-      (handler-case
-          (loop
-            (send-event client (make-instance 'sse-idle-event))
-            (sleep 10))
-        (ccl:socket-error (e)
-          (declare (ignore e)))))
-    (cl-log:log-message :info "Event client ~A disconnected" client)))
-
 (defun process-list-json (&key indent)
   (yason:with-output-to-string* (:indent indent)
     (yason:with-object ()
@@ -331,13 +261,13 @@
   (assert (plusp interval))
   (setf (hunchentoot:content-type*) "text/event-stream")
   (cl-log:log-message :info "Process monitor client connected")
-  (let ((client (make-instance 'sse-client
+  (let ((client (make-instance 'sse:client
                                :stream (flexi-streams:make-flexi-stream (hunchentoot:send-headers)))))
     (handler-case
         (loop
-          (send-event client (make-instance 'sse-event
-                                            :event "process-list"
-                                            :data (process-list-json)))
+          (sse:send-event client (make-instance 'sse:event
+                                                :event "process-list"
+                                                :data (process-list-json)))
           (sleep interval))
       (ccl:socket-error (e)
         (declare (ignore e))
