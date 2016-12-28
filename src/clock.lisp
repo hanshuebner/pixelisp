@@ -3,13 +3,15 @@
 (defpackage :clock
   (:use :cl :alexandria)
   (:export #:run
-           #:style))
+           #:style
+           #:render-seconds-p))
 
 (in-package :clock)
 
 (defparameter *lib-directory* #P"lib/clock/")
 
 (storage:defconfig 'style 1)
+(storage:defconfig 'render-seconds t)
 
 (defun style ()
   (storage:config 'style))
@@ -17,6 +19,12 @@
 (defun (setf style) (style)
   (check-type style (integer 1 5))
   (setf (storage:config 'style) style))
+
+(defun render-seconds-p ()
+  (storage:config 'render-seconds))
+
+(defun (setf render-seconds-p) (render-seconds-p)
+  (setf (storage:config 'render-seconds) render-seconds-p))
 
 (defun render-digit (digits-image output-image position digit)
   (dotimes (y 16)
@@ -45,9 +53,10 @@
     (render-digit digits-image output-image 1 (mod hours 10))
     (render-digit digits-image output-image 2 (floor minutes 10))
     (render-digit digits-image output-image 3 (mod minutes 10))
-    (destructuring-bind (x y) (second-positon seconds)
-      (setf (skippy:pixel-ref output-image x y)
-            (skippy:pixel-ref digits-image x (+ y 176))))
+    (when (render-seconds-p)
+      (destructuring-bind (x y) (second-positon seconds)
+        (setf (skippy:pixel-ref output-image x y)
+              (skippy:pixel-ref digits-image x (+ y 176)))))
     output-image))
 
 (defun render-time-to-leds (digits-image color-table hours minutes seconds)
@@ -89,11 +98,19 @@
     (setf (style) style))
   (princ-to-string (style)))
 
+(hunchentoot:define-easy-handler (seconds :uri "/clock/seconds") ((render :parameter-type 'integer))
+  (when (eq (hunchentoot:request-method*) :post)
+    (setf (render-seconds-p) (/= render 0)))
+  (princ-to-string (render-seconds-p)))
+
 (hunchentoot:define-easy-handler (clock-preview :uri "/clock/preview") ((style :parameter-type 'integer))
   (check-type style (integer 1 5))
   (multiple-value-bind (digits-image color-table) (read-digits style)
     (let ((image (apply #'render-time digits-image color-table (get-current-time))))
-      (setf (hunchentoot:content-type*) "image/gif")
+      (setf (hunchentoot:content-type*) "image/gif"
+            (hunchentoot:header-out :cache-control) "no-cache, no-store, must-revalidate"
+            (hunchentoot:header-out :pragma) "no-cache"
+            (hunchentoot:header-out :expires) "0")
       (let ((stream (skippy:make-data-stream :width 16 :height 16 :color-table color-table)))
         (skippy:add-image image stream)
         (flex:with-output-to-sequence (s)

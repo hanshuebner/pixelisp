@@ -239,7 +239,13 @@
                                        :value style))))
                     ((:img :src (format nil "/clock/preview?style=~A" style)
                            :width "128"
-                           :height "128")))))))))))
+                           :height "128"))))))))
+    (:legend "Settings")
+    ((:div :class "form-group" :id "clock-settings")
+     ((:div :class "checkbox" :id "render-seconds")
+      (:label (if (clock:render-seconds-p)
+                  (html ((:input :type "checkbox" :checked "checked") " Render seconds"))
+                  (html ((:input :type "checkbox") " Render seconds")))))))))
 
 (defun process-list-json (&key indent)
   (yason:with-output-to-string* (:indent indent)
