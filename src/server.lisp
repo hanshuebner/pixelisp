@@ -8,7 +8,17 @@
 
 (defparameter *default-http-port* #+darwin 8899 #-darwin 80)
 
+(defun determine-project-root ()
+  (let* ((defaults (truename *default-pathname-defaults*))
+         (directory (pathname-directory defaults)))
+    (if (equal (last directory)
+               '("src"))
+        (make-pathname :directory (butlast directory)
+                       :defaults defaults)
+        defaults)))
+
 (defun start (&key (port *default-http-port*))
+  (setf *default-pathname-defaults* (determine-project-root))
   (logging:start)
   (messaging:make-agent :main
                         (lambda ()

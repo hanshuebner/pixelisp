@@ -32,5 +32,10 @@ $(document).ready(function () {
     evtSource.onmessage = function (event) { console.log('untyped event received: ', event); };
     $(window).resize(resize);
     resize();
+
+    $('#script-form select').on('change', function () {
+        console.log('select script', $(this).val());
+        $.post('/script?name=' + $(this).val());
+    });
 });
 

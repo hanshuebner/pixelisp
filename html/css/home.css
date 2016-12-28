@@ -16,3 +16,11 @@
     height: 25px;
     background: #000;
 }
+
+#script-form {
+    padding-top: 20px;
+}
+
+#script-form label {
+    padding-right: 0.5em;
+}

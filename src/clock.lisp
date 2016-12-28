@@ -69,21 +69,20 @@
 
 (defun run ()
   (loop
-    (tagbody
-     reload
-       (let* ((style (style))
-              previous-time)
-         (multiple-value-bind (digits-image color-table) (read-digits style)
-           (loop
-             (let ((current-time (get-current-time)))
-               (unless (equal current-time previous-time)
-                 (messaging:send :display
-                                 :set-frame-buffer
-                                 (apply #'render-time-to-leds digits-image color-table current-time))
-                 (setf previous-time current-time))
-               (unless (equal style (style))
-                 (go reload))
-               (sleep 0.1))))))))
+    (with-simple-restart (app:start "(Re)start the clock")
+      (let* ((style (style))
+             previous-time)
+        (multiple-value-bind (digits-image color-table) (read-digits style)
+          (loop
+            (let ((current-time (get-current-time)))
+              (unless (equal current-time previous-time)
+                (messaging:send :display
+                                :set-frame-buffer
+                                (apply #'render-time-to-leds digits-image color-table current-time))
+                (setf previous-time current-time))
+              (unless (equal style (style))
+                (invoke-restart 'app:start))
+              (sleep 0.1))))))))
 
 (hunchentoot:define-easy-handler (clock-style :uri "/clock/style") ((style :parameter-type 'integer))
   (when (eq (hunchentoot:request-method*) :post)

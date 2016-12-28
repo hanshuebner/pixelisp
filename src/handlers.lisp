@@ -128,7 +128,15 @@
                                                       (+ (* y 16)
                                                          (if (evenp y)
                                                              x
-                                                             (- 15 x))))) " "))))))))
+                                                             (- 15 x))))) " ")))))))
+  ((:form :class "form form-inline" :id "script-form" :action "#")
+   ((:div :class "form-group")
+    ((:label :for "script") "Mode: ")
+    ((:select :name "script")
+     (dolist (script (controller:all-scripts))
+       (if (equal script (controller:script))
+           (html ((:option :value script :selected "selected") (:princ-safe script)))
+           (html ((:option :value script) (:princ-safe script)))))))))
 
 (defun render-image (image classes)
   (html ((:div :class classes)
@@ -142,7 +150,7 @@
                 :title (pathname-name image)
                 :data-image-name (pathname-name image))))))
 
-(define-main-page (gifs "GIFs" "/gifs")
+(define-main-page (gallery "Gallery" "/gallery")
   ((:form :id "upload-form" :method "POST" :enctype "multipart/form-data")
    (:fieldset
     (:legend "Animation library")
