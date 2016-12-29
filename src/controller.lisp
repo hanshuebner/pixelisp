@@ -64,10 +64,27 @@
       (error (e)
         (cl-log:log-message :error "Error while running script ~S: ~A" script e)))))
 
+(define-condition pause (condition)
+  ())
+
+(defun pause ()
+  (ccl:process-interrupt (messaging:agent-named :controller)
+                         (lambda ()
+                           (signal 'pause))))
+
+(defun resume ()
+  (messaging:send :controller :resume))
+
 (defun start ()
   (messaging:make-agent :controller
                         (lambda ()
                           (loop
+                            (handler-bind
+                                ((pause (lambda (e)
+                                          (declare (ignore e))
+                                          (cl-log:log-message :info "Paused, waiting for resume message")
+                                          (messaging:wait-for :code :resume)
+                                          (cl-log:log-message :info "Resuming")))))
                             (catch 'restart
                               (cond
                                 (*power*
@@ -78,7 +95,7 @@
                                  (cl-log:log-message :info "Power off")
                                  (loop (sleep 1)))))))))
 
-(hunchentoot:define-easy-handler (pause :uri "/power") (switch)
+(hunchentoot:define-easy-handler (set-power :uri "/power") (switch)
   (when (eql (hunchentoot:request-method*) :post)
     (setf (power)
           (ecase (intern (string-upcase switch) :keyword)

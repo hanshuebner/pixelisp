@@ -28,6 +28,7 @@
                           (when port
                             (webserver:start :port port))
                           (remote-control:start)
+                          (alerter:start)
                           (app:make :clock 'clock:run)
                           (app:make :gallery 'gallery:play)
                           (controller:start)

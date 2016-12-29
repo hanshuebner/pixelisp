@@ -25,6 +25,7 @@
                (:file "gallery")
                (:file "controller")
                (:file "remote-control")
+               (:file "alerter")
                (:file "sse")
                (:file "web-frame")
                (:file "handlers")
