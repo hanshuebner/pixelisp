@@ -8,7 +8,9 @@
            #:name #:images
            #:brightness
            #:chill-factor
-           #:image-to-leds))
+           #:image-to-leds
+           #:make-led-images
+           #:make-text))
 
 (in-package :display)
 
@@ -25,7 +27,8 @@
 (defclass animation ()
   ((images :initarg :images :reader images)
    (name :initarg :name :reader name)
-   (next-image-index :initform 0 :accessor next-image-index)))
+   (next-image-index :initform 0 :accessor next-image-index)
+   (owner :initarg :owner :initform nil :reader owner)))
 
 (defmethod print-object ((animation animation) stream)
   (print-unreadable-object (animation stream :type t)
@@ -41,6 +44,9 @@
       (incf next-image-index)
       (when (= next-image-index (length images))
         (setf next-image-index 0)))))
+
+(defmethod at-start-p ((animation animation))
+  (zerop (next-image-index animation)))
 
 (defclass led-image (skippy::image)
   ((led-frame :initarg :led-frame :reader led-frame)))
@@ -73,9 +79,8 @@
                             (aref frame-buffer (+ fb-offset 3)) r))))
   frame-buffer)
 
-(defun make-led-images (file)
-  (loop with stream = (skippy:load-data-stream file)
-        with frame-buffer = (make-frame-buffer :brightness (storage:config 'brightness))
+(defun make-led-images (stream)
+  (loop with frame-buffer = (make-frame-buffer :brightness (storage:config 'brightness))
         with images = (skippy:images stream)
         with color-table = (skippy:color-table stream)
         for i from 0 below (length images)
@@ -85,13 +90,22 @@
                                                :led-frame (copy-sequence 'vector frame-buffer)))
         finally (return images)))
 
+(defun make-animation (name images &rest args &key owner)
+  (declare (ignore owner))
+  (cl-log:log-message :info "Make animation ~A with ~D frames" name (length images))
+  (apply #'make-instance 'animation
+         :name name
+         :images images
+         args))
+
 (defun load-gif (file)
   (cl-log:log-message :info "Loading GIF file ~A" file)
-  (let* ((images (make-led-images file)))
-    (cl-log:log-message :info "Loaded ~D frames" (length images))
-    (make-instance 'animation
-                   :name (pathname-name file)
-                   :images images)))
+  (make-animation (pathname-name file) (make-led-images (skippy:load-data-stream file))))
+
+(defun make-text (text &key owner)
+  (cl-log:log-message :info "Rendering text ~S" text)
+  (make-animation "marquee" (make-led-images (marquee:animate-banner (marquee:render-banner text)))
+                  :owner owner))
 
 (defun write-frame (frame output)
   (write-sequence frame output)
@@ -147,7 +161,10 @@
            (setf brightness (storage:config 'brightness))
            (loop for image across (images *current-animation*)
                  do (setf (buffer-brightness (led-frame image)) brightness)))
-         (display-frame output (next-image *current-animation*)))
+         (display-frame output (next-image *current-animation*))
+         (when (and (at-start-p *current-animation*)
+                    (owner *current-animation*))
+           (messaging:send (owner *current-animation*) :animation-at-start)))
         (t
          (sleep .01))))))
 

@@ -50,9 +50,13 @@
   (storage:config 'script))
 
 (defun run-script ()
-  (let ((*package* (find-package :cl-user))
-        (script (find-script (storage:config 'script))))
+  (app:stop)
+  (let* ((*package* (find-package :cl-user))
+         (script-name (storage:config 'script))
+         (script (find-script script-name)))
     (cl-log:log-message :info "Running script ~S" script)
+    (messaging:send :display :set-animation (display:make-text script-name :owner (ccl:process-name (messaging:agent))))
+    (messaging:wait-for :code :animation-at-start)
     (handler-case
         (progn
           (load script :verbose nil :print nil)
@@ -67,9 +71,7 @@
                             (catch 'restart
                               (cond
                                 (*power*
-                                 (cl-log:log-message :info "Power on")
-                                 (loop
-                                   (run-script)))
+                                 (run-script))
                                 (t
                                  (app:stop)
                                  (messaging:send :display :blank)

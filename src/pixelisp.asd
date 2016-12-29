@@ -18,6 +18,7 @@
                (:file "logging")
                (:file "messaging")
                (:file "storage")
+               (:file "marquee")
                (:file "display")
                (:file "app")
                (:file "clock")
