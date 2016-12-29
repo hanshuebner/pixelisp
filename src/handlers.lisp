@@ -216,7 +216,7 @@
               :data-slider-min "0"
               :data-slider-max "5"
               :data-slider-step "0.1"
-              :data-slider-value (format nil "~G" (storage:config 'display:chill-factor))))
+              :data-slider-value (format nil "~G" (storage:config 'gallery:chill-factor))))
      (:princ "&nbsp;&nbsp;&nbsp;")
      (:label "Amphetamine")))))
 

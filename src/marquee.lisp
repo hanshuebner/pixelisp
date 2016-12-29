@@ -79,13 +79,14 @@
                           (skippy:pixel-ref banner (+ x start-x) y)))
         finally (return square)))
 
-(defun animate-banner (banner-image &key (loopingp t))
+(defun animate-banner (banner-image &key (loopingp t) (delay 1))
   (let ((stream (skippy:make-data-stream :width 16
                                          :height 16
                                          :color-table (skippy:color-table banner-image)
                                          :loopingp loopingp)))
     (dotimes (x (- (skippy:width banner-image) 16))
-      (skippy:add-image (copy-square banner-image x) stream))
+      (skippy:add-image (copy-square banner-image x) stream)
+      (skippy:add-delay delay stream))
     stream))
 
 (defun save-stream (stream pathname)

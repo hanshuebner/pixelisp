@@ -104,13 +104,13 @@ $(document).ready(function () {
         .bootstrapSlider({ reversed: true });
     $('#chill-factor')
         .on('slide', function (event) {
-            $.post('/chill?factor=' + event.value);
+            $.post('/gallery/chill?factor=' + event.value);
         });
 
     $('#brightness')
         .bootstrapSlider();
     $('#brightness')
         .on('slide', function (event) {
-            $.post('/brightness?level=' + event.value);
+            $.post('/display/brightness?level=' + event.value);
         });
 });

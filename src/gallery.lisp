@@ -5,7 +5,8 @@
   (:export #:play
            #:playlist
            #:make-gif-pathname
-           #:import-gif))
+           #:import-gif
+           #:chill-factor))
 
 (in-package :gallery)
 
@@ -13,6 +14,7 @@
 
 (storage:defconfig 'playlist nil)
 (storage:defconfig 'animation-show-time 15)
+(storage:defconfig 'chill-factor 2)
 
 (defun playlist ()
   (storage:config 'playlist))
@@ -24,7 +26,7 @@
 (defun set-animation (file)
   (cl-log:log-message :info "Loading ~A" file)
   (handler-case
-      (messaging:send :display :set-animation (display:load-gif file))
+      (messaging:send :display :set-animation (display:load-gif file :chill-factor (storage:config 'chill-factor)))
     (error (e)
       (cl-log:log-message :error "Error loading animation ~A~%~A~%" file e)
       (sleep .5))))
@@ -115,3 +117,14 @@
       (setf (playlist) (yason:parse body))))
   (setf (hunchentoot:content-type*) "application/json")
   (yason:encode (playlist)))
+
+(defun parse-float (string)
+  (float (parse-number:parse-positive-real-number string)))
+
+(hunchentoot:define-easy-handler (chill :uri "/gallery/chill") ((factor :parameter-type 'parse-float))
+  (when (eq (hunchentoot:request-method*) :post)
+    (check-type factor (float 0.0 5.0))
+    (setf (storage:config 'chill-factor) factor)
+    (when-let (animation (display:current-animation))
+      (setf (display:chill-factor animation) factor)))
+  (format nil "chill factor ~A" (storage:config 'chill-factor)))

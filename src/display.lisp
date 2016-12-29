@@ -5,12 +5,13 @@
   (:export #:start
            #:current-animation
            #:load-gif
-           #:name #:images
+           #:name #:frames
            #:brightness
-           #:chill-factor
            #:image-to-leds
-           #:make-led-images
-           #:make-text))
+           #:make-frames
+           #:make-text
+           #:animation
+           #:chill-factor))
 
 (in-package :display)
 
@@ -19,37 +20,38 @@
 (defvar *current-animation* nil)
 
 (storage:defconfig 'brightness 5)
-(storage:defconfig 'chill-factor 2)
 
 (defun current-animation ()
   *current-animation*)
 
 (defclass animation ()
-  ((images :initarg :images :reader images)
+  ((frames :initarg :frames :reader frames)
    (name :initarg :name :reader name)
-   (next-image-index :initform 0 :accessor next-image-index)
+   (next-frame-index :initform 0 :accessor next-frame-index)
+   (chill-factor :initform 1 :initarg :chill-factor :accessor chill-factor)
    (owner :initarg :owner :initform nil :reader owner)))
 
 (defmethod print-object ((animation animation) stream)
   (print-unreadable-object (animation stream :type t)
     (format stream "NAME: ~A (~:D frames, at ~D)"
             (name animation)
-            (length (images animation))
-            (next-image-index animation))))
+            (length (frames animation))
+            (next-frame-index animation))))
 
-(defmethod next-image ((animation animation))
-  (with-slots (images next-image-index) animation
+(defmethod next-frame ((animation animation))
+  (with-slots (frames next-frame-index) animation
     (prog1
-        (aref images next-image-index)
-      (incf next-image-index)
-      (when (= next-image-index (length images))
-        (setf next-image-index 0)))))
+        (aref frames next-frame-index)
+      (incf next-frame-index)
+      (when (= next-frame-index (length frames))
+        (setf next-frame-index 0)))))
 
 (defmethod at-start-p ((animation animation))
-  (zerop (next-image-index animation)))
+  (zerop (next-frame-index animation)))
 
-(defclass led-image (skippy::image)
-  ((led-frame :initarg :led-frame :reader led-frame)))
+(defclass frame ()
+  ((led-data :initarg :led-data :reader led-data)
+   (delay :initarg :delay :reader delay)))
 
 (defun (setf buffer-brightness) (brightness buffer)
   (check-type brightness (integer 0 7) "in the expected range for brightness")
@@ -79,53 +81,63 @@
                             (aref frame-buffer (+ fb-offset 3)) r))))
   frame-buffer)
 
-(defun make-led-images (stream)
+(defun make-frames (stream)
   (loop with frame-buffer = (make-frame-buffer :brightness (storage:config 'brightness))
         with images = (skippy:images stream)
+        with frames = (make-array (length images))
         with color-table = (skippy:color-table stream)
         for i from 0 below (length images)
         for image = (aref images i)
         do (setf frame-buffer (image-to-leds image color-table :frame-buffer frame-buffer)
-                 (aref images i) (change-class image 'led-image
-                                               :led-frame (copy-sequence 'vector frame-buffer)))
-        finally (return images)))
+                 (aref frames i) (make-instance 'frame
+                                                :led-data (copy-sequence 'vector frame-buffer)
+                                                :delay (/ (if (zerop (skippy:delay-time image))
+                                                              10
+                                                              (skippy:delay-time image))
+                                                          100)))
+        finally (return frames)))
 
-(defun make-animation (name images &rest args &key owner)
-  (declare (ignore owner))
-  (cl-log:log-message :info "Make animation ~A with ~D frames" name (length images))
+(defun make-animation (name frames &rest args &key owner chill-factor)
+  (declare (ignore owner chill-factor))
+  (cl-log:log-message :info "Make animation ~A with ~D frames" name (length frames))
   (apply #'make-instance 'animation
          :name name
-         :images images
+         :frames frames
          args))
 
-(defun load-gif (file)
+(defun load-gif (file &rest args &key owner chill-factor)
+  (declare (ignore owner chill-factor))
   (cl-log:log-message :info "Loading GIF file ~A" file)
-  (make-animation (pathname-name file) (make-led-images (skippy:load-data-stream file))))
+  (apply #'make-animation
+         (pathname-name file) (make-frames (skippy:load-data-stream file))
+         args))
 
-(defun make-text (text &key owner)
+(defun make-text (text &rest args &key owner chill-factor)
+  (declare (ignore owner chill-factor))
   (cl-log:log-message :info "Rendering text ~S" text)
-  (make-animation "marquee" (make-led-images (marquee:animate-banner (marquee:render-banner text)))
-                  :owner owner))
+  (apply #'make-animation
+         "marquee" (make-frames (marquee:animate-banner (marquee:render-banner text)))
+         args))
 
 (defun write-frame (frame output)
   (write-sequence frame output)
   (events:publish :frame (format nil "~{~2,'0X~}" (coerce frame 'list))))
 
-(defun display-frame (output image)
-  (let ((start-time (get-internal-real-time)))
-    (write-frame (led-frame image) output)
+(defun display-frame (output frame)
+  (write-frame (led-data frame) output))
+
+(defun display-next-frame (output animation)
+  (let ((start-time (get-internal-real-time))
+        (frame (next-frame animation)))
+    (display-frame output frame)
     (let* ((write-duration (/ (- (get-internal-real-time) start-time) internal-time-units-per-second))
-           (delay (- (* (/ (if (zerop (skippy:delay-time image))
-                               10
-                               (skippy:delay-time image))
-                           100)
-                        (storage:config 'chill-factor))
+           (delay (- (* (delay frame) (chill-factor animation))
                      write-duration)))
       (when (plusp delay)
         (sleep delay)))))
 
 (defun set-current-animation (animation)
-  (setf (next-image-index animation) 0
+  (setf (next-frame-index animation) 0
         *current-animation* animation)
   (events:publish :animation-loaded (name animation)))
 
@@ -159,9 +171,9 @@
          (unless (= brightness (storage:config 'brightness))
            ;; Execute brightness change, if any.
            (setf brightness (storage:config 'brightness))
-           (loop for image across (images *current-animation*)
-                 do (setf (buffer-brightness (led-frame image)) brightness)))
-         (display-frame output (next-image *current-animation*))
+           (loop for frame across (frames *current-animation*)
+                 do (setf (buffer-brightness (led-data frame)) brightness)))
+         (display-next-frame output *current-animation*)
          (when (and (at-start-p *current-animation*)
                     (owner *current-animation*))
            (messaging:send (owner *current-animation*) :animation-at-start)))
@@ -172,16 +184,7 @@
   (cl-log:log-message :info "Starting display agent")
   (messaging:make-agent :display 'display-loop))
 
-(defun parse-float (string)
-  (float (parse-number:parse-positive-real-number string)))
-
-(hunchentoot:define-easy-handler (chill :uri "/chill") ((factor :parameter-type 'parse-float))
-  (when (eq (hunchentoot:request-method*) :post)
-    (check-type factor (float 0.0 5.0))
-    (setf (storage:config 'chill-factor) factor))
-  (format nil "chill factor ~A" (storage:config 'chill-factor)))
-
-(hunchentoot:define-easy-handler (brightness :uri "/brightness") ((level :parameter-type 'integer))
+(hunchentoot:define-easy-handler (brightness :uri "/display/brightness") ((level :parameter-type 'integer))
   (when (eq (hunchentoot:request-method*) :post)
     (check-type level (integer 0 7))
     (setf (storage:config 'brightness) level))
