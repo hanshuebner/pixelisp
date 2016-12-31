@@ -3,7 +3,11 @@
 (defpackage :app
   (:use :cl :alexandria)
   (:export #:start #:stop
-           #:make))
+           #:make
+           #:pause
+           #:resume
+           #:pause-current
+           #:resume-current))
 
 (in-package :app)
 
@@ -16,6 +20,9 @@
   ())
 
 (define-condition stop (app-event)
+  ())
+
+(define-condition pause (app-event)
   ())
 
 (defun wait-for-start ()
@@ -35,7 +42,14 @@
                  (setf *current-app* nil)
                  (wait-for-start)
                  (when (find-restart 'start)
-                   (invoke-restart 'start)))))
+                   (invoke-restart 'start))))
+         (pause (lambda (e)
+                  (declare (ignore e))
+                  (cl-log:log-message :info "received PAUSE signal")
+                  (messaging:wait-for :code :resume)
+                  (cl-log:log-message :info "received RESUME message")
+                  (when (find-restart 'resume)
+                    (invoke-restart 'resume)))))
       (wait-for-start)
       (funcall function))))
 
@@ -65,3 +79,18 @@
     (messaging:agent-not-found (e)
       (declare (ignore e))
       (setf *current-app* nil))))
+
+(defvar *paused* nil)
+
+(defun pause-current ()
+  (when (and *current-app*
+             (not *paused*))
+    (setf *paused* t)
+    (ccl:process-interrupt (messaging:agent-named *current-app*)
+                           (lambda ()
+                             (signal 'pause)))))
+
+(defun resume-current ()
+  (when *paused*
+    (setf *paused* nil)
+    (messaging:send *current-app* :resume)))

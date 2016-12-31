@@ -23,10 +23,10 @@
   (setf (storage:config 'playlist) new)
   new)
 
-(defun set-animation (file)
+(defun load-animation (file)
   (cl-log:log-message :info "Loading ~A" file)
   (handler-case
-      (messaging:send :display :set-animation (display:load-gif file :chill-factor (storage:config 'chill-factor)))
+      (display:load-gif file :chill-factor (storage:config 'chill-factor))
     (error (e)
       (cl-log:log-message :error "Error loading animation ~A~%~A~%" file e)
       (sleep .5))))
@@ -70,24 +70,39 @@
       'user-playlist
       'all-animations-playlist))
 
+(defun check-playlist-changed (playlist)
+  (when (or (not (typep playlist (playlist-class)))
+            (changedp playlist))
+    (cl-log:log-message :debug "restarting because of playlist change")
+    (invoke-restart 'app:start)))
+
 (defun play ()
   (loop
     (with-simple-restart (app:start "Fresh start")
       (loop with playlist = (make-instance (playlist-class))
-            do (loop with previous-file
-                     do (loop for file in (animation-files playlist)
-                              do (when (or (not (typep playlist (playlist-class)))
-                                           (changedp playlist))
-                                   (cl-log:log-message :debug "restarting because of playlist change")
-                                   (invoke-restart 'app:start))
-                                 (restart-case
-                                     (progn
-                                       (unless (equal previous-file file)
-                                         (set-animation file))
-                                       (setf previous-file file)
-                                       (sleep (storage:config 'animation-show-time)))
-                                   (app:start ()
-                                     (setf previous-file nil)))))))))
+            with current-animation
+            with animation-files = (animation-files playlist)
+            with single-file-paylist-p = (= (length animation-files) 1)
+            do (loop for file in animation-files
+                     for animation-show-time = (storage:config 'animation-show-time)
+                     for animation-end-time = (+ (get-universal-time) animation-show-time)
+                     do (check-playlist-changed playlist)
+                        (when (or (not current-animation)
+                                  (not single-file-paylist-p))
+                          (setf current-animation (load-animation file))
+                          (messaging:send :display :set-animation current-animation))
+                        (loop for first-start-p = t then nil
+                              for remaining-time = (- animation-end-time (get-universal-time))
+                              while (plusp remaining-time)
+                              do (with-simple-restart (app:resume "Resume playing")
+                                   (cl-log:log-message :debug "remaining animation time: ~:D seconds" remaining-time)
+                                   (when (or (not first-start-p)
+                                             single-file-paylist-p)
+                                     (messaging:send :display :set-animation current-animation))
+                                   (sleep remaining-time))
+                              finally (when (and single-file-paylist-p
+                                                 (not (plusp remaining-time)))
+                                        (messaging:send :display :set-animation current-animation))))))))
 
 (defun import-gif (input-file output-file)
   (handler-case

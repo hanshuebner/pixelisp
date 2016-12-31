@@ -5,7 +5,9 @@
   (:export #:start
            #:power
            #:script
-           #:all-scripts))
+           #:all-scripts
+           #:pause
+           #:resume))
 
 (in-package :controller)
 
@@ -67,33 +69,42 @@
 (define-condition pause (condition)
   ())
 
+(defvar *paused* nil)
+
 (defun pause ()
-  (ccl:process-interrupt (messaging:agent-named :controller)
-                         (lambda ()
-                           (signal 'pause))))
+  (unless *paused*
+    (setf *paused* t)
+    (ccl:process-interrupt (messaging:agent-named :controller)
+                           (lambda ()
+                             (signal 'pause)))))
 
 (defun resume ()
-  (messaging:send :controller :resume))
+  (when *paused*
+    (setf *paused* nil)
+    (messaging:send :controller :resume)))
 
 (defun start ()
   (messaging:make-agent :controller
                         (lambda ()
-                          (loop
-                            (handler-bind
-                                ((pause (lambda (e)
-                                          (declare (ignore e))
-                                          (cl-log:log-message :info "Paused, waiting for resume message")
-                                          (messaging:wait-for :code :resume)
-                                          (cl-log:log-message :info "Resuming")))))
-                            (catch 'restart
-                              (cond
-                                (*power*
-                                 (run-script))
-                                (t
-                                 (app:stop)
-                                 (messaging:send :display :blank)
-                                 (cl-log:log-message :info "Power off")
-                                 (loop (sleep 1)))))))))
+                          (handler-bind
+                              ((pause (lambda (e)
+                                        (declare (ignore e))
+                                        (cl-log:log-message :info "Paused, waiting for resume message")
+                                        (app:pause-current)
+                                        (messaging:send :display :blank)
+                                        (messaging:wait-for :code :resume)
+                                        (app:resume-current)
+                                        (cl-log:log-message :info "Resuming"))))
+                            (loop
+                              (catch 'restart
+                                (cond
+                                  (*power*
+                                   (run-script))
+                                  (t
+                                   (app:stop)
+                                   (messaging:send :display :blank)
+                                   (cl-log:log-message :info "Power off")
+                                   (loop (sleep 1))))))))))
 
 (hunchentoot:define-easy-handler (set-power :uri "/power") (switch)
   (when (eql (hunchentoot:request-method*) :post)

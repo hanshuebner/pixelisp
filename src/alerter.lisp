@@ -29,7 +29,8 @@
   "alert ended")
 
 (defun resume-running-app ()
-  (messaging:send :display :blank))
+  (messaging:send :display :blank)
+  (controller:resume))
 
 (defun start ()
   (messaging:make-agent :alerter
@@ -39,6 +40,7 @@
                               (let ((message (messaging:receive)))
                                 (ecase (messaging:code message)
                                   (:set
+                                   (controller:pause)
                                    (destructuring-bind (&key text color loop) (messaging:args message)
                                      (setf current-loop loop)
                                      (messaging:send :display

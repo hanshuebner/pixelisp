@@ -139,8 +139,7 @@
         (sleep delay)))))
 
 (defun set-current-animation (animation)
-  (setf (next-frame-index animation) 0
-        *current-animation* animation)
+  (setf *current-animation* animation)
   (events:publish :animation-loaded (name animation)))
 
 (defun set-current-frame-buffer (output frame-buffer)
