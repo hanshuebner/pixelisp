@@ -16,6 +16,7 @@ Pixelisp is alternative, [Raspberry Pi 3](https://www.raspberrypi.org/) based en
 * Brightness control
 * Animation playback speed control
 * Configurable clock style
+* Alerts display with HTTP interface
 * Scriptable
 * Self-hosted, hack the running system
 * Completely written in Common Lisp, the programmable programming language
