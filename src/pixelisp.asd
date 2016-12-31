@@ -14,6 +14,7 @@
                :yason)
   :serial t
   :components ((:file "utils")
+               (:file "color")
                (:file "events")
                (:file "logging")
                (:file "messaging")
