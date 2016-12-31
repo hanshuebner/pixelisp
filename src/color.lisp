@@ -159,17 +159,17 @@
                                 do (setf (gethash name table) value)
                                 finally (return table)))
 
-(define-condition invalid-color-string (simple-error)
+(define-condition invalid-color-string (error)
   ((color-string :initarg :color-string :reader color-string))
-  (:default-initargs :format-control "invalid color specification ~A"))
+  (:report (lambda (c stream)
+             (format stream "invalid color specification ~A" (color-string c)))))
 
 (defun parse (string)
   (when string
     (let ((hex-value (gethash string *colors* string)))
       (unless (cl-ppcre:scan "(?i)^[0-9a-f]{6}$" hex-value)
         (error 'invalid-color-string
-               :color-string string
-               :format-arguments (list string)))
+               :color-string string))
       (skippy:rgb-color (parse-integer hex-value :start 0 :end 2 :radix 16)
                         (parse-integer hex-value :start 2 :end 4 :radix 16)
                         (parse-integer hex-value :start 4 :end 6 :radix 16)))))

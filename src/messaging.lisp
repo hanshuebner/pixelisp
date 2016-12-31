@@ -27,37 +27,38 @@
 
 (defvar *registry-lock* (ccl:make-lock "agent registry lock"))
 
-(define-condition duplicate-process-name (simple-error)
+(define-condition duplicate-process-name (error)
   ((name :initarg :name
          :reader name))
-  (:default-initargs :format-control "Duplicate agent name: ~S"))
+  (:report (lambda (c stream)
+             (format stream "Duplicate agent name: ~S" (name c)))))
 
 (defun register-agent (agent name)
   (ccl:with-lock-grabbed (*registry-lock*)
     (when (gethash name *agent-registry*)
-      (error 'duplicate-process-name :name name :format-arguments (list name)))
+      (error 'duplicate-process-name :name name))
     (setf (gethash name *agent-registry*) agent)))
 
-(define-condition agent-not-found (simple-error)
+(define-condition agent-not-found (error)
   ((name :initarg :name :reader name))
-  (:default-initargs
-   :format-control "No agent named ~S was found"))
+  (:report (lambda (c stream)
+             (format stream "No agent named ~S was found" (name c)))))
 
 (defun agent-named (name)
   (or (gethash name *agent-registry*)
-      (error 'agent-not-found :name name :format-arguments (list name))))
+      (error 'agent-not-found :name name)))
 
-(define-condition not-an-agent (simple-error)
+(define-condition not-an-agent (error)
   ((process :initarg :process :reader process))
-  (:default-initargs
-   :format-control "The process ~A is not an agent"))
+  (:report (lambda (c stream)
+             (format stream "The process ~S is not an agent" (process c)))))
 
 (defun ensure-agent (thing)
   (cond
     ((typep thing 'ccl:process)
      (if (typep thing 'agent)
          thing
-         (error 'not-an-agent :process thing :format-arguments (list thing))))
+         (error 'not-an-agent :process thing)))
     ((typep thing '(or string symbol))
      (agent-named thing))
     (t

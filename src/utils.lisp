@@ -14,6 +14,5 @@
                                                       :output output))
       (declare (ignore status))
       (unless (zerop exit-code)
-        (error 'simple-error
-               :format-control "shell command \"~A~@[ ~A~]\" failed with exit code ~D~@[~%~A~]"
-               :format-arguments (list program args exit-code (get-output-stream-string output)))))))
+        (error "shell command \"~A~@[ ~A~]\" failed with exit code ~D~@[~%~A~]"
+               program args exit-code (get-output-stream-string output))))))
