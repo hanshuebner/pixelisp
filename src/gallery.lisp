@@ -131,7 +131,8 @@
       (cl-log:log-message :debug "POST body: ~S" body)
       (setf (playlist) (yason:parse body))))
   (setf (hunchentoot:content-type*) "application/json")
-  (yason:encode (playlist)))
+  (with-output-to-string (s)
+    (yason:encode (playlist) s)))
 
 (defun parse-float (string)
   (float (parse-number:parse-positive-real-number string)))
