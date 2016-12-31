@@ -252,7 +252,7 @@
 (define-main-page (alert "Alert" "/alert")
   ((:form :class "form" :id "alert-form" :action "#")
    (:fieldset
-    (:legend "Send alert")
+    (:legend "Display Alert")
     ((:div :class "form-group row")
      ((:label :class "col-xs-2 col-form-label" :for "message") "Message")
      ((:div :class "col-xs-10")
@@ -267,7 +267,8 @@
     ((:div :class "form-group row")
      ((:label :class "col-xs-2 col-form-label" :for "color") "Color")
      ((:div :class "col-xs-3")
-      ((:input :class "form-control" :type "text" :value "white" :name "color" :id "color"))))
+      ((:input :class "form-control" :type "text" :value "white" :name "color" :id "color")))
+     ((:div :class "col-xs-3") "Name or hex RGB value"))
     ((:div :class "form-group row")
      ((:label :class "col-xs-2 col-form-label") "cURL command")
      ((:div :class "col-xs-10 command-line")
