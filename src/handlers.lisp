@@ -55,7 +55,7 @@
        (:title "GAME FRAME: "(:princ-safe title))
        (dolist (stylesheet (list "jquery-ui.min" "jquery-ui.structure.min" "jquery-ui.theme.min"
                                  "bootstrap.min" "bootstrap-slider.min"
-                                 "ie10-viewport-bug-workaround" "styles"
+                                 "ie10-viewport-bug-workaround" "styles" "fonts"
                                  (string-downcase (symbol-name name))))
          (when (probe-file (make-pathname :name stylesheet
                                           :type "css"
@@ -106,13 +106,15 @@
              ((:div :class "container")
               ((:div :class "pixelisp")
                (funcall function)))))
-       ((:script :src "/js/jquery.min.js"))
-       (:script "window.jQuery || document.write('<script src=\"/js/jquery.min.js\"></script>')")
-       (dolist (js (list "jquery-ui.min" "bootstrap.min" "bootstrap-slider.min" "ie10-viewport-bug-workaround"
-                         "bootbox.min" "jquery.idle.min" "all"
-                         (string-downcase (symbol-name name))))
-         (when (probe-file (make-pathname :name js
-                                          :type "js"
+       ((:script :src "/js/lib/jquery.min.js"))
+       (:script "window.jQuery || document.write('<script src=\"/js/lib/jquery.min.js\"></script>')")
+       (dolist (js (list "jquery-ui.min" "bootstrap.min" "bootstrap-slider.min"
+                         "ie10-viewport-bug-workaround" "bootbox.min" "jquery.idle.min"))
+         (when (probe-file (make-pathname :name js :type "js"
+                                          :defaults (merge-pathnames #P"js/lib/" *html-directory*)))
+           (html ((:script :src (str "/js/" js ".js"))))))
+       (dolist (js (list "all" (string-downcase (symbol-name name))))
+         (when (probe-file (make-pathname :name js :type "js"
                                           :defaults (merge-pathnames #P"js/" *html-directory*)))
            (html ((:script :src (str "/js/" js ".js"))))))))))
 
@@ -246,6 +248,39 @@
       (:label (if (clock:render-seconds-p)
                   (html ((:input :type "checkbox" :checked "checked") " Render seconds"))
                   (html ((:input :type "checkbox") " Render seconds")))))))))
+
+(define-main-page (alert "Alert" "/alert")
+  ((:form :class "form" :id "alert-form" :action "#")
+   (:fieldset
+    (:legend "Send alert")
+    ((:div :class "form-group row")
+     ((:label :class "col-xs-2 col-form-label" :for "message") "Message")
+     ((:div :class "col-xs-10")
+      ((:input :class "form-control" :type "text" :name "message" :value "Hello" :id "message"))))
+    ((:div :class "form-group row")
+     ((:label :class "col-xs-2 col-form-label") "Loop")
+     ((:div :class "col-xs-1")
+      ((:input :class "form-control" :type "text" :value "1" :name "loop" :id "loop")))
+     ((:div :class "col-xs-1")
+      ((:div :class "checkbox")
+       (:label ((:input :type "checkbox" :name "forever" :id "forever") " Forever")))))
+    ((:div :class "form-group row")
+     ((:label :class "col-xs-2 col-form-label" :for "color") "Color")
+     ((:div :class "col-xs-3")
+      ((:input :class "form-control" :type "text" :value "white" :name "color" :id "color"))))
+    ((:div :class "form-group row")
+     ((:label :class "col-xs-2 col-form-label") "cURL command")
+     ((:div :class "col-xs-10 command-line")
+      (:span "curl -XPOST 'http://"
+             (:princ (cl-ppcre:regex-replace ":80$" (hunchentoot:host) "")) "/alert/set?")
+      ((:span :id "url") "")
+      (:span "'")))
+    ((:div :class "form-group row")
+     ((:div :class "col-xs-2") " ")
+     ((:div :class "col-xs-7")
+      ((:button :id "set" :class "btn btn-primary btn-space") "Set")
+      ((:button :id "cancel" :class "btn btn-space") "Cancel")
+      ((:button :id "abort" :class "btn btn-warning") "Abort"))))))
 
 (defun process-list-json (&key indent)
   (yason:with-output-to-string* (:indent indent)

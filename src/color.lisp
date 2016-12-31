@@ -173,3 +173,14 @@
       (skippy:rgb-color (parse-integer hex-value :start 0 :end 2 :radix 16)
                         (parse-integer hex-value :start 2 :end 4 :radix 16)
                         (parse-integer hex-value :start 4 :end 6 :radix 16)))))
+
+(hunchentoot:define-easy-handler (color-names :uri "/color-names") (term)
+  (setf (hunchentoot:content-type*) "application/json")
+  (with-output-to-string (s)
+    (yason:encode (remove-if-not (if term
+                                     (let ((scanner (cl-ppcre:create-scanner term
+                                                                             :case-insensitive-mode t)))
+                                       (lambda (color-name)
+                                         (cl-ppcre:scan scanner color-name)))
+                                     (constantly t))
+                                 (sort (hash-table-keys *colors*) #'string-lessp)) s)))

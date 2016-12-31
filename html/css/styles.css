@@ -38,3 +38,9 @@ body.raw {
 .log-category-error {
     color: red;
 }
+.btn-space {
+    margin-right: 10px;
+}
+.command-line {
+    font-family: 'Source Code Pro', monospace;
+}
