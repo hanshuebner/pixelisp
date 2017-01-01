@@ -79,3 +79,18 @@
                                 (unless (messaging:try-receive)
                                   (return)))
                               (save))))))
+
+(defun settings-json (&key indent)
+  (yason:with-output-to-string* (:indent indent)
+    (yason:with-object ()
+      (loop for package in (remove-duplicates (mapcar #'symbol-package (hash-table-keys *config*)))
+            do (yason:with-object-element ((string-downcase (package-name package)))
+                 (yason:with-object ()
+                   (loop for key being the hash-keys of *config*
+                         when (eql (symbol-package key) package)
+                           do (yason:encode-object-element (string-downcase (symbol-name key))
+                                                           (gethash key *config*)))))))))
+
+(hunchentoot:define-easy-handler (settings :uri "/settings") ()
+  (setf (hunchentoot:content-type*) "application/json")
+  (settings-json))

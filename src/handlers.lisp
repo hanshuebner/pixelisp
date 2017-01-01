@@ -109,10 +109,11 @@
        ((:script :src "/js/lib/jquery.min.js"))
        (:script "window.jQuery || document.write('<script src=\"/js/lib/jquery.min.js\"></script>')")
        (dolist (js (list "jquery-ui.min" "bootstrap.min" "bootstrap-slider.min"
-                         "ie10-viewport-bug-workaround" "bootbox.min" "jquery.idle.min"))
+                         "ie10-viewport-bug-workaround" "bootbox.min" "jquery.idle.min"
+                         "jquery.rule"))
          (when (probe-file (make-pathname :name js :type "js"
                                           :defaults (merge-pathnames #P"js/lib/" *html-directory*)))
-           (html ((:script :src (str "/js/" js ".js"))))))
+           (html ((:script :src (str "/js/lib/" js ".js"))))))
        (dolist (js (list "all" (string-downcase (symbol-name name))))
          (when (probe-file (make-pathname :name js :type "js"
                                           :defaults (merge-pathnames #P"js/" *html-directory*)))
@@ -123,22 +124,38 @@
 
 (define-main-page (home "Home" "/")
   ((:div :id "frame")
-   (dotimes (y 16)
-     (html (:div
-            (dotimes (x 16)
-              (html ((:div :class "pixel" :id (format nil "pixel-~D"
-                                                      (+ (* y 16)
-                                                         (if (evenp y)
-                                                             x
-                                                             (- 15 x))))) " ")))))))
-  ((:form :class "form form-inline" :id "script-form" :action "#")
+   (loop for y below 16
+         do (html (:div
+                   (loop for x below 16
+                         for pixel-address = (+ (* y 16)
+                                                (if (evenp y)
+                                                    x
+                                                    (- 15 x)))
+                         do (html ((:div :class "pixel-container")
+                                   ((:div :class "pixel" :id (format nil "pixel-~D" pixel-address)) " ")
+                                   ((:div :class "pixel mask") " "))))))))
+  ((:form :class "form" :id "script-form" :action "#")
    ((:div :class "form-group")
     ((:label :for "script") "Mode: ")
     ((:select :name "script")
      (dolist (script (controller:all-scripts))
        (if (equal script (controller:script))
            (html ((:option :value script :selected "selected") (:princ-safe script)))
-           (html ((:option :value script) (:princ-safe script)))))))))
+           (html ((:option :value script) (:princ-safe script)))))))
+   (:fieldset
+    (:legend "Settings")
+    ((:div :class "form-group")
+     ((:label :class "left-slider-label") "Dark")
+     (:princ "&nbsp;&nbsp;&nbsp;")
+     ((:input :id "brightness"
+              :data-slider-id "brightness"
+              :type "text"
+              :data-slider-min "1"
+              :data-slider-max "7"
+              :data-slider-step "1"
+              :data-slider-value (format nil "~A" (storage:config 'display:brightness))))
+     (:princ "&nbsp;&nbsp;&nbsp;")
+     (:label "Bright")))))
 
 (defun render-image (image classes)
   (html ((:div :class classes)
@@ -197,18 +214,6 @@
             (render-image pathname "image")))))))
    (:fieldset
     (:legend "Settings")
-    ((:div :class "form-group")
-     ((:label :class "left-slider-label") "Dark")
-     (:princ "&nbsp;&nbsp;&nbsp;")
-     ((:input :id "brightness"
-              :data-slider-id "brightness"
-              :type "text"
-              :data-slider-min "1"
-              :data-slider-max "7"
-              :data-slider-step "1"
-              :data-slider-value (format nil "~A" (storage:config 'display:brightness))))
-     (:princ "&nbsp;&nbsp;&nbsp;")
-     (:label "Bright"))
     ((:div :class "form-group")
      ((:label :class "left-slider-label") "Flunitrazepam")
      (:princ "&nbsp;&nbsp;&nbsp;")

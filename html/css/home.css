@@ -2,21 +2,30 @@
     border: 8px solid black;
     display: inline-block;
     width: 416px;
+    font-size: 1px;
 }
 #frame div {
-    margin: 0px;
-    padding: 0px;
-    border: 0px;
+    display: inline-block;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+#frame .pixel-container {
+    position: relative;
+    width: 25px;
     height: 25px;
 }
 #frame .pixel {
-    display: inline-block;
+    position: absolute;
+    top: 0; left: 0;
     border: 2px solid black;
     width: 25px;
     height: 25px;
     background: #000;
 }
-
+#frame .mask {
+    background: rgba(0, 0, 0, .5);
+}
 #script-form {
     padding-top: 20px;
 }

@@ -99,18 +99,13 @@ $(document).ready(function () {
     }
 
     /* settings related */
-    
+    var oldChillFactor;
     $('#chill-factor')
-        .bootstrapSlider({ reversed: true });
-    $('#chill-factor')
+        .bootstrapSlider({ reversed: true })
         .on('slide', function (event) {
-            $.post('/gallery/chill?factor=' + event.value);
-        });
-
-    $('#brightness')
-        .bootstrapSlider();
-    $('#brightness')
-        .on('slide', function (event) {
-            $.post('/display/brightness?level=' + event.value);
+            if (event.value != oldChillFactor) {
+                $.post('/gallery/chill?factor=' + event.value);
+                oldChillFactor = event.value;
+            }
         });
 });

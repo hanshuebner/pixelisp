@@ -2,7 +2,8 @@
 
 (defpackage :utils
   (:use :cl :alexandria)
-  (:export #:run-program))
+  (:export #:run-program
+           #:settings-hash))
 
 (in-package :utils)
 
@@ -16,3 +17,9 @@
       (unless (zerop exit-code)
         (error "shell command \"~A~@[ ~A~]\" failed with exit code ~D~@[~%~A~]"
                program args exit-code (get-output-stream-string output))))))
+
+(defun settings-hash (&rest args)
+  (loop with hash = (make-hash-table :test #'equal)
+        for (k v) on args by #'cddr
+        do (setf (gethash (string-downcase k) hash) v)
+        finally (return hash)))

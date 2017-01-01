@@ -6,7 +6,8 @@
            #:playlist
            #:make-gif-pathname
            #:import-gif
-           #:chill-factor))
+           #:chill-factor
+           #:settings))
 
 (in-package :gallery)
 

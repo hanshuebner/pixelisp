@@ -11,7 +11,8 @@
            #:make-frames
            #:make-text
            #:animation
-           #:chill-factor))
+           #:chill-factor
+           #:settings))
 
 (in-package :display)
 
@@ -185,8 +186,15 @@
   (cl-log:log-message :info "Starting display agent")
   (messaging:make-agent :display 'display-loop))
 
-(hunchentoot:define-easy-handler (brightness :uri "/display/brightness") ((level :parameter-type 'integer))
+(defun brightness ()
+  (storage:config 'brightness))
+
+(defun (setf brightness) (level)
+  (check-type level (integer 0 7))
+  (setf (storage:config 'brightness) level)
+  (events:publish :brightness level))
+
+(hunchentoot:define-easy-handler (display-brightness :uri "/display/brightness") ((level :parameter-type 'integer))
   (when (eq (hunchentoot:request-method*) :post)
-    (check-type level (integer 0 7))
-    (setf (storage:config 'brightness) level))
+    (setf (brightness) level))
   (format nil "brightness level ~A" (storage:config 'brightness)))
