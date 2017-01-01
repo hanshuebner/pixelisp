@@ -113,12 +113,14 @@
          (pathname-name file) (make-frames (skippy:load-data-stream file))
          args))
 
-(defun make-text (text &rest args &key owner chill-factor color)
-  (declare (ignore owner chill-factor))
+(defun make-text (text &rest args &key owner chill-factor color color-table)
+  (declare (ignore owner chill-factor color color-table))
   (cl-log:log-message :info "Rendering text ~S" text)
   (apply #'make-animation
-         "marquee" (make-frames (marquee:animate-banner (marquee:render-banner text)
-                                                        :color color))
+         "marquee" (make-frames (apply #'marquee:animate-banner
+                                       (marquee:render-banner text)
+                                       :allow-other-keys t
+                                       args))
          :allow-other-keys t
          args))
 

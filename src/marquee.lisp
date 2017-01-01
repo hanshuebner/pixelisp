@@ -4,7 +4,8 @@
   (:use :cl :alexandria)
   (:export
    #:animate-banner
-   #:render-banner))
+   #:render-banner
+   #:make-color-table))
 
 (in-package :marquee)
 
@@ -71,24 +72,35 @@
              (incf x width))
     image))
 
-(defun copy-square (banner start-x)
+(defun copy-square (banner frame-number color)
   (loop with square = (skippy:make-image :width 16 :height 16 :delay-time 1)
         for x below 16
         do (loop for y below 16
+                 when (plusp (skippy:pixel-ref banner (+ x frame-number) y))
                  do (setf (skippy:pixel-ref square x y)
-                          (skippy:pixel-ref banner (+ x start-x) y)))
+                          (funcall color frame-number x y)))
         finally (return square)))
 
-(defun animate-banner (banner-image &key (loopingp t) (delay 1) color)
-  (let* ((color-table (skippy:color-table banner-image))
+(defun make-color-table (&rest colors)
+  (skippy:make-color-table :initial-contents (apply #'list (color:parse "black")
+                                                    (mapcar #'color:parse colors))))
+
+(defun animate-banner (banner-image &key (loopingp t) (delay 1) color color-table)
+  (check-type color (or null (unsigned-byte 24) function))
+  (let* ((color-table (or color-table (skippy:color-table banner-image)))
          (stream (skippy:make-data-stream :width 16
                                           :height 16
                                           :color-table color-table
                                           :loopingp loopingp)))
-    (when color
+    (when (typep color '(unsigned-byte 24))
       (setf (skippy:color-table-entry color-table 1) color))
-    (dotimes (x (- (skippy:width banner-image) 16))
-      (skippy:add-image (copy-square banner-image x) stream)
+    (dotimes (frame-number (- (skippy:width banner-image) 16))
+      (skippy:add-image (copy-square banner-image
+                                     frame-number
+                                     (if (typep color 'function)
+                                         color
+                                         (constantly 1)))
+                        stream)
       (skippy:add-delay delay stream))
     stream))
 
