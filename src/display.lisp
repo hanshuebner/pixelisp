@@ -18,6 +18,8 @@
 
 (defparameter *leds-device* #-darwin "/dev/spidev0.0" #+darwin "/dev/null")
 
+(defparameter $SPI_IOC_WR_MAX_SPEED_HZ #x40046b04)
+
 (defvar *current-animation* nil)
 
 (storage:defconfig 'brightness 5)
@@ -158,6 +160,14 @@
                                     :if-exists :append
                                     :element-type '(unsigned-byte 8)))
         (brightness (storage:config 'brightness)))
+    #-darwin
+    (ccl:rlet ((max-hz :unsigned-fullword))
+      (setf (ccl:%get-unsigned-long max-hz) 2000000)
+      (let ((errno (ccl::int-errno-call (#_ioctl (ccl:stream-device output :output)
+                                                 $SPI_IOC_WR_MAX_SPEED_HZ
+                                                 :address max-hz))))
+        (unless (zerop errno)
+          (error "cannot set SPI speed: ~A" (ccl::%strerror errno)))))
     (blank output)
     (loop
       (when-let (message (messaging:try-receive))
