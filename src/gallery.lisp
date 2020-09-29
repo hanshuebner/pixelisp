@@ -77,12 +77,21 @@
     (cl-log:log-message :debug "restarting because of playlist change")
     (invoke-restart 'app:start)))
 
+(defun shift-randomly (vector)
+  (let ((size (length vector)))
+    (if (= size 1)
+        vector
+        (let ((split-at (random size)))
+          (concatenate 'vector
+                       (subseq vector split-at)
+                       (subseq vector 0 split-at))))))
+
 (defun play ()
   (loop
     (with-simple-restart (app:start "Fresh start")
       (loop with playlist = (make-instance (playlist-class))
             with current-animation
-            with animation-files = (animation-files playlist)
+            with animation-files = (shift-randomly (animation-files playlist))
             with single-file-paylist-p = (= (length animation-files) 1)
             do (loop for file in animation-files
                      for animation-show-time = (storage:config 'animation-show-time)
