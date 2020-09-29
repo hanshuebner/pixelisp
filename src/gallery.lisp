@@ -77,14 +77,14 @@
     (cl-log:log-message :debug "restarting because of playlist change")
     (invoke-restart 'app:start)))
 
-(defun shift-randomly (vector)
-  (let ((size (length vector)))
+(defun shift-randomly (list)
+  (let ((size (length list)))
     (if (= size 1)
-        vector
+        list
         (let ((split-at (random size)))
-          (concatenate 'vector
-                       (subseq vector split-at)
-                       (subseq vector 0 split-at))))))
+          (concatenate 'list
+                       (subseq list split-at)
+                       (subseq list 0 split-at))))))
 
 (defun play ()
   (loop
