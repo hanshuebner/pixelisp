@@ -61,7 +61,7 @@
 (defmethod initialize-instance :before ((playlist user-playlist) &key)
   (with-slots (animation-names animation-files) playlist
     (setf animation-names (playlist)
-          animation-files (mapcar #'make-gif-pathname animation-names))))
+          animation-files (remove-if-not #'probe-file (mapcar #'make-gif-pathname animation-names)))))
 
 (defmethod changedp ((playlist user-playlist))
   (not (equal (animation-names playlist) (playlist))))
