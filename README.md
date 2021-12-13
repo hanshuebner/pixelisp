@@ -4,6 +4,8 @@ Pixelisp is alternative, [Raspberry Pi 3](https://www.raspberrypi.org/) based en
 [LEDSEQ Game Frame](http://ledseq.com/product/game-frame/), which is a
 16x16 RGB matrix display in a nice, living room compatible housing.
 
+Divoom Pixoo is a Game Frame clone.
+
 ## Features
 
 * Configuration of all aspects of the Game Frame through a Web
