@@ -91,7 +91,9 @@
         with color-table = (skippy:color-table stream)
         for i from 0 below (length images)
         for image = (aref images i)
-        do (setf frame-buffer (image-to-leds image color-table :frame-buffer frame-buffer)
+        do (setf frame-buffer (image-to-leds image
+                                             (or (skippy:color-table image) color-table)
+                                             :frame-buffer frame-buffer)
                  (aref frames i) (make-instance 'frame
                                                 :led-data (copy-sequence 'vector frame-buffer)
                                                 :delay (/ (if (zerop (skippy:delay-time image))
