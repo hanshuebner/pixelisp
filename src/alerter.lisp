@@ -6,12 +6,22 @@
 
 (in-package :alerter)
 
-(hunchentoot:define-easy-handler (alert-set :uri "/alert/set") (message color loop)
+(defmacro xor (v1 v2)
+  `(not (eq (not ,v1) (not ,v2))))
+
+(hunchentoot:define-easy-handler (alert-set :uri "/alert/set") (message color loop animation)
   (unless (eq (hunchentoot:request-method*) :post)
     (error "need POST request"))
+  (unless (xor message animation)
+    (error "need message or image parameter, but not both"))
   (messaging:send :alerter :set
-                  :text message
-                  :color (color:parse color)
+                  :animation (if message
+                                 (display:make-text message
+                                                :color color
+                                                :owner (ccl:process-name (messaging:agent)))
+                                 (display:load-gif (gallery:make-gif-pathname animation)
+                                                   :chill-factor 1
+                                                   :owner (ccl:process-name (messaging:agent))))
                   :loop (when loop
                           (or (parse-integer loop :junk-allowed t)
                               (and (string-equal loop "forever") t)
@@ -41,12 +51,10 @@
                                 (ecase (messaging:code message)
                                   (:set
                                    (controller:pause)
-                                   (destructuring-bind (&key text color loop) (messaging:args message)
+                                   (destructuring-bind (&key animation loop) (messaging:args message)
                                      (setf current-loop loop)
                                      (messaging:send :display
-                                                     :set-animation (display:make-text text
-                                                                                       :color color
-                                                                                       :owner (ccl:process-name (messaging:agent))))))
+                                                     :set-animation animation)))
                                   (:cancel
                                    (setf current-loop nil))
                                   (:abort
