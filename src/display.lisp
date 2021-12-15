@@ -11,6 +11,7 @@
            #:make-frames
            #:make-text
            #:animation
+           #:owner
            #:chill-factor
            #:settings))
 
@@ -32,7 +33,7 @@
    (name :initarg :name :reader name)
    (next-frame-index :initform 0 :accessor next-frame-index)
    (chill-factor :initform 1 :initarg :chill-factor :accessor chill-factor)
-   (owner :initarg :owner :initform nil :reader owner)))
+   (owner :initarg :owner :initform nil :accessor owner)))
 
 (defmethod print-object ((animation animation) stream)
   (print-unreadable-object (animation stream :type t)

@@ -14,14 +14,12 @@
     (error "need POST request"))
   (unless (xor message animation)
     (error "need message or image parameter, but not both"))
-  (messaging:send :alerter :set
+  (messaging:send :alerter :set-animation
                   :animation (if message
                                  (display:make-text message
-                                                :color color
-                                                :owner (ccl:process-name (messaging:agent)))
+                                                :color color)
                                  (display:load-gif (gallery:make-gif-pathname animation)
-                                                   :chill-factor 1
-                                                   :owner (ccl:process-name (messaging:agent))))
+                                                   :chill-factor 1))
                   :loop (when loop
                           (or (parse-integer loop :junk-allowed t)
                               (and (string-equal loop "forever") t)
@@ -49,10 +47,11 @@
                             (loop
                               (let ((message (messaging:receive)))
                                 (ecase (messaging:code message)
-                                  (:set
+                                  (:set-animation
                                    (controller:pause)
                                    (destructuring-bind (&key animation loop) (messaging:args message)
-                                     (setf current-loop loop)
+                                     (setf current-loop loop
+                                           (display:owner animation) (ccl:process-name (messaging:agent)))
                                      (messaging:send :display
                                                      :set-animation animation)))
                                   (:cancel
